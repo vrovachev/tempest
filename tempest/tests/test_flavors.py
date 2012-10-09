@@ -56,7 +56,6 @@ class FlavorsTest(unittest.TestCase):
         resp, flavors = self.client.list_flavors_with_detail(params)
         self.assertEqual(1, len(flavors))
 
-    @unittest.expectedFailure
     @attr(type='positive', bug='lp912922')
     def test_list_flavors_using_marker(self):
         """The list of flavors should start from the provided marker"""
@@ -68,7 +67,6 @@ class FlavorsTest(unittest.TestCase):
         self.assertFalse(any([i for i in flavors if i['id'] == flavor_id]),
                         'The list of flavors did not start after the marker.')
 
-    @unittest.expectedFailure
     @attr(type='positive', bug='lp912922')
     def test_list_flavors_detailed_using_marker(self):
         """The list of flavors should start from the provided marker"""
