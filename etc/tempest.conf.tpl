@@ -65,6 +65,11 @@ build_interval = %COMPUTE_BUILD_INTERVAL%
 # to build or reach an expected status
 build_timeout = %COMPUTE_BUILD_TIMEOUT%
 
+# Run additional tests that use SSH for instance validation?
+# This requires the instances be routable from the host
+#  executing the tests
+run_ssh = %RUN_SSH%
+
 # The type of endpoint for a Compute API service. Unless you have a
 # custom Keystone service catalog implementation, you probably want to leave
 # this value as "compute"
