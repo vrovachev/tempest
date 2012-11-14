@@ -11,4 +11,4 @@ python-glanceclient
 python-quantumclient
 python-novaclient
 python-keystoneclient
-MySQL-python
+pymysql
