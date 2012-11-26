@@ -10,3 +10,4 @@ ipython
 unittest2
 paramiko
 paste
+glance
