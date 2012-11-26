@@ -9,3 +9,4 @@ dnspython
 ipython
 unittest2
 paramiko
+paste
