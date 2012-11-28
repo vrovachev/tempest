@@ -233,7 +233,7 @@ class ServersClientXML(RestClientXML):
         resp, body = self.get("servers/%s/ips" % str(server_id), self.headers)
 
         networks = {}
-        for child in etree.fromstring(body.getchildren()):
+        for child in etree.fromstring(body).getchildren():
             network = self._parse_network(child)
             networks.update(**network)
 
