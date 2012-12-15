@@ -25,18 +25,21 @@ from tempest.common.utils.data_utils import rand_name
 
 class BaseNetworkTest(unittest.TestCase):
 
+    networks = None
+    client = None
+
     @classmethod
     def setUpClass(cls):
         os = openstack.Manager()
-        client = os.network_client
+        cls.client = os.network_client
         config = os.config
-        networks = []
+        cls.networks = []
         enabled = True
 
         # Validate that there is even an endpoint configured
         # for networks, and mark the attr for skipping if not
         try:
-            client.list_networks()
+            cls.client.list_networks()
         except exceptions.EndpointNotFound:
             enabled = False
             skip_msg = "No OpenStack Network API endpoint"
@@ -47,11 +50,4 @@ class BaseNetworkTest(unittest.TestCase):
         for network in cls.networks:
             cls.client.delete_network(network['id'])
 
-    def create_network(self, network_name=None):
-        """Wrapper utility that returns a test network"""
-        network_name = network_name or rand_name('test-network')
 
-        resp, body = self.client.create_network(network_name)
-        network = body['network']
-        self.networks.append(network)
-        return network

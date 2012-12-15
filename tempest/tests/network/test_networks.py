@@ -14,6 +14,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from unittest import skip
 
 from nose.plugins.attrib import attr
 
@@ -22,6 +23,16 @@ from tempest.tests.network import base
 
 
 class NetworksTest(base.BaseNetworkTest):
+
+    @classmethod
+    def create_network(cls, network_name=None):
+        """Wrapper utility that returns a test network"""
+        network_name = network_name or rand_name('test-network')
+
+        resp, body = cls.client.create_network(network_name)
+        network = body['network']
+        cls.networks.append(network)
+        return network
 
     @classmethod
     def setUpClass(cls):
@@ -34,7 +45,7 @@ class NetworksTest(base.BaseNetworkTest):
         """Creates and deletes a network for a tenant"""
         name = rand_name('network')
         resp, body = self.client.create_network(name)
-        self.assertEqual('202', resp['status'])
+        self.assertEqual('201', resp['status'])
         network = body['network']
         self.assertTrue(network['id'] is not None)
         resp, body = self.client.delete_network(network['id'])
@@ -50,6 +61,7 @@ class NetworksTest(base.BaseNetworkTest):
         self.assertEqual(self.name, network['name'])
 
     @attr(type='positive')
+    @skip('no method in quantum 2.0 api')
     def test_show_network_details(self):
         """Verifies the full details of a network"""
         resp, body = self.client.get_network_details(self.network['id'])
@@ -68,6 +80,7 @@ class NetworksTest(base.BaseNetworkTest):
         self.assertTrue(found)
 
     @attr(type='positive')
+    @skip('no method in quantum 2.0 api')
     def test_list_networks_with_detail(self):
         """Verify the network exists in the detailed list of all networks"""
         resp, body = self.client.list_networks_details()
