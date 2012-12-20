@@ -120,12 +120,11 @@ class RestClient(object):
         self.http_obj = httplib2.Http()
         headers = {'Content-Type': 'application/json'}
         body = json.dumps(creds)
-        resp, body = self.http_obj.request(auth_url, 'POST',
+        resp, resp_body = self.http_obj.request(auth_url, 'POST',
                                            headers=headers, body=body)
-
         if resp.status == 200:
             try:
-                auth_data = json.loads(body)['access']
+                auth_data = json.loads(resp_body)['access']
                 token = auth_data['token']['id']
             except Exception, e:
                 print "Failed to obtain token for user: %s" % e
@@ -157,6 +156,17 @@ class RestClient(object):
         elif resp.status == 401:
             raise exceptions.AuthenticationFailure(user=user,
                                                    password=password)
+
+        self._log(auth_url, body,resp, resp_body)
+        raise exceptions.TempestException(
+            "Authorization failed",
+            user,
+            password,
+            body,
+            resp,
+            resp.status,
+            resp_body,
+        )
 
     def post(self, url, body, headers):
         return self.request('POST', url, headers, body)
