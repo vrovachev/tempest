@@ -70,8 +70,8 @@ class ListImageFiltersTest(BaseComputeTest):
         cls.client.delete_image(cls.image1_id)
         cls.client.delete_image(cls.image2_id)
         cls.client.delete_image(cls.image3_id)
-        cls.servers_client.delete_server(cls.server1['id'])
-        cls.servers_client.delete_server(cls.server2['id'])
+        cls.servers_client.delete_server_sync(cls.server1['id'])
+        cls.servers_client.delete_server_sync(cls.server2['id'])
         super(ListImageFiltersTest, cls).tearDownClass()
 
     @attr(type='negative')

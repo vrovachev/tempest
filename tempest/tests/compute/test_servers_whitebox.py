@@ -48,7 +48,7 @@ class ServersWhiteboxTest(whitebox.ComputeWhiteboxTest):
     def tearDown(cls):
         for server in cls.servers:
             try:
-                cls.client.delete_server(server['id'])
+                cls.client.delete_server_sunc(server['id'])
             except exceptions.NotFound:
                 continue
 

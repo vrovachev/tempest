@@ -39,7 +39,7 @@ class ServerMetadataTest(BaseComputeTest):
 
     @classmethod
     def tearDownClass(cls):
-        cls.client.delete_server(cls.server_id)
+        cls.client.delete_server_sync(cls.server_id)
         super(ServerMetadataTest, cls).tearDownClass()
 
     def setUp(self):

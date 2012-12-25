@@ -37,150 +37,173 @@ class TestServerDiskConfig(BaseComputeTest):
 
     @attr(type='positive')
     def test_create_server_with_manual_disk_config(self):
-        """A server should be created with manual disk config"""
-        name = rand_name('server')
-        resp, server = self.client.create_server(name,
-                                                 self.image_ref,
-                                                 self.flavor_ref,
-                                                 disk_config='MANUAL')
+        server = None
+        try:
+            """A server should be created with manual disk config"""
+            name = rand_name('server')
+            resp, server = self.client.create_server(name,
+                                                     self.image_ref,
+                                                     self.flavor_ref,
+                                                     disk_config='MANUAL')
 
-        #Wait for the server to become active
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Wait for the server to become active
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        #Verify the specified attributes are set correctly
-        resp, server = self.client.get_server(server['id'])
-        self.assertEqual('MANUAL', server['OS-DCF:diskConfig'])
-
-        #Delete the server
-        resp, body = self.client.delete_server(server['id'])
+            #Verify the specified attributes are set correctly
+            resp, server = self.client.get_server(server['id'])
+            self.assertEqual('MANUAL', server['OS-DCF:diskConfig'])
+        finally:
+            #Delete the server
+            if not (server is None):
+                resp, body = self.client.delete_server_sync(server['id'])
 
     @attr(type='positive')
     def test_create_server_with_auto_disk_config(self):
-        """A server should be created with auto disk config"""
-        name = rand_name('server')
-        resp, server = self.client.create_server(name,
-                                                 self.image_ref,
-                                                 self.flavor_ref,
-                                                 disk_config='AUTO')
+        server = None
+        try:
+            """A server should be created with auto disk config"""
+            name = rand_name('server')
+            resp, server = self.client.create_server(name,
+                                                     self.image_ref,
+                                                     self.flavor_ref,
+                                                     disk_config='AUTO')
 
-        #Wait for the server to become active
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Wait for the server to become active
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        #Verify the specified attributes are set correctly
-        resp, server = self.client.get_server(server['id'])
-        self.assertEqual('AUTO', server['OS-DCF:diskConfig'])
+            #Verify the specified attributes are set correctly
+            resp, server = self.client.get_server(server['id'])
+            self.assertEqual('AUTO', server['OS-DCF:diskConfig'])
 
-        #Delete the server
-        resp, body = self.client.delete_server(server['id'])
+        finally:
+            #Delete the server
+            if not (server is None):
+                resp, body = self.client.delete_server_sync(server['id'])
 
     @attr(type='positive')
     def test_rebuild_server_with_manual_disk_config(self):
-        """A server should be rebuilt using the manual disk config option"""
-        name = rand_name('server')
-        resp, server = self.client.create_server(name,
-                                                 self.image_ref,
-                                                 self.flavor_ref,
-                                                 disk_config='AUTO')
+        server = None
+        try:
+            """A server should be rebuilt using the manual disk config option"""
+            name = rand_name('server')
+            resp, server = self.client.create_server(name,
+                                                     self.image_ref,
+                                                     self.flavor_ref,
+                                                     disk_config='AUTO')
 
-        #Wait for the server to become active
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Wait for the server to become active
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        #Verify the specified attributes are set correctly
-        resp, server = self.client.get_server(server['id'])
-        self.assertEqual('AUTO', server['OS-DCF:diskConfig'])
+            #Verify the specified attributes are set correctly
+            resp, server = self.client.get_server(server['id'])
+            self.assertEqual('AUTO', server['OS-DCF:diskConfig'])
 
-        resp, server = self.client.rebuild(server['id'],
-                                           self.image_ref_alt,
-                                           disk_config='MANUAL')
+            resp, server = self.client.rebuild(server['id'],
+                                               self.image_ref_alt,
+                                               disk_config='MANUAL')
 
-        #Wait for the server to become active
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Wait for the server to become active
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        #Verify the specified attributes are set correctly
-        resp, server = self.client.get_server(server['id'])
-        self.assertEqual('MANUAL', server['OS-DCF:diskConfig'])
+            #Verify the specified attributes are set correctly
+            resp, server = self.client.get_server(server['id'])
+            self.assertEqual('MANUAL', server['OS-DCF:diskConfig'])
 
-        #Delete the server
-        resp, body = self.client.delete_server(server['id'])
+        finally:
+            #Delete the server
+            if not (server is None):
+                resp, body = self.client.delete_server_sync(server['id'])
 
     @attr(type='positive')
     def test_rebuild_server_with_auto_disk_config(self):
-        """A server should be rebuilt using the auto disk config option"""
-        name = rand_name('server')
-        resp, server = self.client.create_server(name,
-                                                 self.image_ref,
-                                                 self.flavor_ref,
-                                                 disk_config='MANUAL')
+        server = None
+        try:
+            """A server should be rebuilt using the auto disk config option"""
+            name = rand_name('server')
+            resp, server = self.client.create_server(name,
+                                                     self.image_ref,
+                                                     self.flavor_ref,
+                                                     disk_config='MANUAL')
 
-        #Wait for the server to become active
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Wait for the server to become active
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        #Verify the specified attributes are set correctly
-        resp, server = self.client.get_server(server['id'])
-        self.assertEqual('MANUAL', server['OS-DCF:diskConfig'])
+            #Verify the specified attributes are set correctly
+            resp, server = self.client.get_server(server['id'])
+            self.assertEqual('MANUAL', server['OS-DCF:diskConfig'])
 
-        resp, server = self.client.rebuild(server['id'],
-                                           self.image_ref_alt,
-                                           disk_config='AUTO')
+            resp, server = self.client.rebuild(server['id'],
+                                               self.image_ref_alt,
+                                               disk_config='AUTO')
 
-        #Wait for the server to become active
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Wait for the server to become active
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        #Verify the specified attributes are set correctly
-        resp, server = self.client.get_server(server['id'])
-        self.assertEqual('AUTO', server['OS-DCF:diskConfig'])
+            #Verify the specified attributes are set correctly
+            resp, server = self.client.get_server(server['id'])
+            self.assertEqual('AUTO', server['OS-DCF:diskConfig'])
 
-        #Delete the server
-        resp, body = self.client.delete_server(server['id'])
+        finally:
+            #Delete the server
+            if not (server is None):
+                resp, body = self.client.delete_server_sync(server['id'])
 
     @attr(type='positive')
     @unittest.skipUnless(compute.RESIZE_AVAILABLE, 'Resize not available.')
     def test_resize_server_from_manual_to_auto(self):
-        """A server should be resized from manual to auto disk config"""
-        name = rand_name('server')
-        resp, server = self.client.create_server(name,
-                                                 self.image_ref,
-                                                 self.flavor_ref,
-                                                 disk_config='MANUAL')
+        server = None
+        try:
+            """A server should be resized from manual to auto disk config"""
+            name = rand_name('server')
+            resp, server = self.client.create_server(name,
+                                                     self.image_ref,
+                                                     self.flavor_ref,
+                                                     disk_config='MANUAL')
 
-        #Wait for the server to become active
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Wait for the server to become active
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        #Resize with auto option
-        self.client.resize(server['id'], self.flavor_ref_alt,
-                           disk_config='AUTO')
-        self.client.wait_for_server_status(server['id'], 'VERIFY_RESIZE')
-        self.client.confirm_resize(server['id'])
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Resize with auto option
+            self.client.resize(server['id'], self.flavor_ref_alt,
+                               disk_config='AUTO')
+            self.client.wait_for_server_status(server['id'], 'VERIFY_RESIZE')
+            self.client.confirm_resize(server['id'])
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        resp, server = self.client.get_server(server['id'])
-        self.assertEqual('AUTO', server['OS-DCF:diskConfig'])
+            resp, server = self.client.get_server(server['id'])
+            self.assertEqual('AUTO', server['OS-DCF:diskConfig'])
 
-        #Delete the server
-        resp, body = self.client.delete_server(server['id'])
+        finally:
+            #Delete the server
+            if not (server is None):
+                resp, body = self.client.delete_server_sync(server['id'])
 
     @attr(type='positive')
     @unittest.skipUnless(compute.RESIZE_AVAILABLE, 'Resize not available.')
     def test_resize_server_from_auto_to_manual(self):
-        """A server should be resized from auto to manual disk config"""
-        name = rand_name('server')
-        resp, server = self.client.create_server(name,
-                                                 self.image_ref,
-                                                 self.flavor_ref,
-                                                 disk_config='AUTO')
+        server = None
+        try:
+            """A server should be resized from auto to manual disk config"""
+            name = rand_name('server')
+            resp, server = self.client.create_server(name,
+                                                     self.image_ref,
+                                                     self.flavor_ref,
+                                                     disk_config='AUTO')
 
-        #Wait for the server to become active
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Wait for the server to become active
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        #Resize with manual option
-        self.client.resize(server['id'], self.flavor_ref_alt,
-                           disk_config='MANUAL')
-        self.client.wait_for_server_status(server['id'], 'VERIFY_RESIZE')
-        self.client.confirm_resize(server['id'])
-        self.client.wait_for_server_status(server['id'], 'ACTIVE')
+            #Resize with manual option
+            self.client.resize(server['id'], self.flavor_ref_alt,
+                               disk_config='MANUAL')
+            self.client.wait_for_server_status(server['id'], 'VERIFY_RESIZE')
+            self.client.confirm_resize(server['id'])
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
-        resp, server = self.client.get_server(server['id'])
-        self.assertEqual('MANUAL', server['OS-DCF:diskConfig'])
+            resp, server = self.client.get_server(server['id'])
+            self.assertEqual('MANUAL', server['OS-DCF:diskConfig'])
 
-        #Delete the server
-        resp, body = self.client.delete_server(server['id'])
+        finally:
+            #Delete the server
+            if not (server is None):
+                resp, body = self.client.delete_server_sync(server['id'])

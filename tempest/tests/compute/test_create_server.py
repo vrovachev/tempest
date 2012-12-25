@@ -54,7 +54,7 @@ class ServersTest(object):
 
     @staticmethod
     def tearDownClass(cls):
-        cls.client.delete_server(cls.server_initial['id'])
+        cls.client.delete_server_sync(cls.server_initial['id'])
 
     @attr(type='smoke')
     def test_create_server_response(self):

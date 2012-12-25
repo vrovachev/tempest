@@ -72,7 +72,7 @@ class ImagesTestBase(object):
 
         # Teardown
         self.client.delete_image(image['id'])
-        self.servers_client.delete_server(server['id'])
+        self.servers_client.delete_server_sync(server['id'])
 
     @attr(type='negative')
     def test_create_image_from_deleted_server(self):

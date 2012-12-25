@@ -37,7 +37,7 @@ class ServerAddressesTest(BaseComputeTest):
 
     @classmethod
     def tearDownClass(cls):
-        cls.client.delete_server(cls.server['id'])
+        cls.client.delete_server_sync(cls.server['id'])
         super(ServerAddressesTest, cls).tearDownClass()
 
     @attr(type='negative', category='server-addresses')

@@ -82,9 +82,9 @@ class ListServerFiltersTest(object):
 
     @staticmethod
     def tearDownClass(cls):
-        cls.client.delete_server(cls.s1['id'])
-        cls.client.delete_server(cls.s2['id'])
-        cls.client.delete_server(cls.s3['id'])
+        cls.client.delete_server_sync(cls.s1['id'])
+        cls.client.delete_server_sync(cls.s2['id'])
+        cls.client.delete_server_sync(cls.s3['id'])
 
     def _server_id_in_results(self, server_id, results):
         ids = [row['id'] for row in results]

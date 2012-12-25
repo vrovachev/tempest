@@ -57,7 +57,7 @@ class FloatingIPsTestBase(object):
     @staticmethod
     def tearDownClass(cls):
         #Deleting the server which is created in this method
-        resp, body = cls.servers_client.delete_server(cls.server_id)
+        resp, body = cls.servers_client.delete_server_sync(cls.server_id)
         #Deleting the floating IP which is created in this method
         resp, body = cls.client.delete_floating_ip(cls.floating_ip_id)
 

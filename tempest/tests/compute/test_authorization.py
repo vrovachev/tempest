@@ -94,7 +94,7 @@ class AuthorizationTest(BaseComputeTest):
     @classmethod
     def tearDownClass(cls):
         if compute.MULTI_USER:
-            cls.client.delete_server(cls.server['id'])
+            cls.client.delete_server_sync(cls.server['id'])
             cls.images_client.delete_image(cls.image['id'])
             cls.keypairs_client.delete_keypair(cls.keypairname)
             cls.security_client.delete_security_group(cls.security_group['id'])

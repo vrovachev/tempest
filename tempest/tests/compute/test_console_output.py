@@ -40,7 +40,7 @@ class ConsoleOutputTest(BaseComputeTest):
 
     @classmethod
     def tearDownClass(cls):
-        cls.servers_client.delete_server(cls.server_id)
+        cls.servers_client.delete_server_sync(cls.server_id)
         super(ConsoleOutputTest, cls).tearDownClass()
 
     @attr(type='positive')

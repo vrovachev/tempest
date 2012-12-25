@@ -75,7 +75,7 @@ class ServerPersonalityTestBase(object):
             self.assertEqual('202', resp['status'])
 
         except Exception:
-            raise Error(resp['message'])
+            raise Exception(resp['message'])
 
         #Teardown
         finally:

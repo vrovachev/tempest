@@ -125,8 +125,8 @@ class ServersNegativeTest(BaseComputeTest):
                                                         self.image_ref,
                                                         self.flavor_ref)
         self.server_id = create_server['id']
-        self.client.delete_server(self.server_id)
-        self.client.wait_for_server_termination(self.server_id)
+        self.client.delete_server_sync(self.server_id)
+
         try:
             resp1, reboot_server = self.client.reboot(self.server_id, 'SOFT')
         except exceptions.NotFound:
@@ -142,8 +142,8 @@ class ServersNegativeTest(BaseComputeTest):
                                                         self.image_ref,
                                                         self.flavor_ref)
         self.server_id = create_server['id']
-        self.client.delete_server(self.server_id)
-        self.client.wait_for_server_termination(self.server_id)
+        self.client.delete_server_sync(self.server_id)
+
         try:
             resp1, rebuild_server = self.client.rebuild(self.server_id,
                                                         self.image_ref_alt)
@@ -257,7 +257,7 @@ class ServersNegativeTest(BaseComputeTest):
                               self.alt_client.delete_server,
                               server['id'])
         finally:
-            self.client.delete_server(server['id'])
+            self.client.delete_server_sync(server['id'])
 
     @attr(type='negative')
     def test_delete_server_pass_negative_id(self):

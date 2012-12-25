@@ -41,7 +41,7 @@ class ServersTestBase(object):
 
         #Teardown
         finally:
-            self.client.delete_server(server['id'])
+            self.client.delete_server_sync(server['id'])
 
     def test_create_with_existing_server_name(self):
         """Creating a server with a name that already exists is allowed"""
@@ -67,7 +67,7 @@ class ServersTestBase(object):
         finally:
             for server_id in (id1, id2):
                 if server_id:
-                    self.client.delete_server(server_id)
+                    self.client.delete_server_sync(server_id)
 
     @attr(type='positive')
     def test_create_specify_keypair(self):
@@ -88,7 +88,7 @@ class ServersTestBase(object):
             self.assertEqual(key_name, server['key_name'])
         finally:
             if server:
-                self.client.delete_server(server['id'])
+                self.client.delete_server_sync(server['id'])
 
     @attr(type='positive')
     def test_update_server_name(self):
@@ -111,7 +111,7 @@ class ServersTestBase(object):
 
         #Teardown
         finally:
-            self.client.delete_server(server['id'])
+            self.client.delete_server_sync(server['id'])
 
     @attr(type='positive')
     def test_update_access_server_address(self):
@@ -138,7 +138,7 @@ class ServersTestBase(object):
 
         #Teardown
         finally:
-            self.client.delete_server(server['id'])
+            self.client.delete_server_sync(server['id'])
 
     def test_delete_server_while_in_building_state(self):
         """Delete a server while it's VM state is Building"""
@@ -146,7 +146,7 @@ class ServersTestBase(object):
         resp, server = self.client.create_server(name, self.image_ref,
                                                  self.flavor_ref)
         self.client.wait_for_server_status(server['id'], 'BUILD')
-        resp, _ = self.client.delete_server(server['id'])
+        resp, _ = self.client.delete_server_sync(server['id'])
         self.assertEqual('204', resp['status'])
 
 

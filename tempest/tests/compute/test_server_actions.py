@@ -44,7 +44,7 @@ class ServerActionsTestBase(object):
         self.client.wait_for_server_status(self.server_id, 'ACTIVE')
 
     def tearDown(self):
-        self.client.delete_server(self.server_id)
+        self.client.delete_server_sync(self.server_id)
 
     @attr(type='smoke')
     @unittest.skipUnless(compute.CHANGE_PASSWORD_AVAILABLE,

@@ -49,7 +49,7 @@ class ImagesMetadataTest(BaseComputeTest):
     @classmethod
     def tearDownClass(cls):
         cls.client.delete_image(cls.image_id)
-        cls.servers_client.delete_server(cls.server_id)
+        cls.servers_client.delete_server_sync(cls.server_id)
         super(ImagesMetadataTest, cls).tearDownClass()
 
     def setUp(self):

@@ -100,6 +100,11 @@ class ServersClientJSON(RestClient):
         """Deletes the given server"""
         return self.delete("servers/%s" % str(server_id))
 
+    def delete_server_sync(self, server_id, ignore_error=False):
+        response = self.delete_server(server_id)
+        self.wait_for_server_termination(server_id, ignore_error=ignore_error)
+        return response
+
     def list_servers(self, params=None):
         """Lists all servers for a user"""
 

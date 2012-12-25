@@ -302,8 +302,7 @@ class SecurityGroupsTest(object):
 
         # Shutdown the server and then verify we can destroy the
         # security groups, since no active server instance is using them
-        self.servers_client.delete_server(server_id)
-        self.servers_client.wait_for_server_termination(server_id)
+        self.servers_client.delete_server_sync(server_id)
 
         self.client.delete_security_group(sg_id)
         self.assertEqual(202, resp.status)

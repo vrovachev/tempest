@@ -39,7 +39,8 @@ class AttachVolumeTest(object):
 
     def _delete(self, server_id, volume_id):
         self.volumes_client.delete_volume(volume_id)
-        self.servers_client.delete_server(server_id)
+        self.servers_client.delete_server_sync(server_id)
+
 
     def _create_and_attach(self):
         name = rand_name('server')
