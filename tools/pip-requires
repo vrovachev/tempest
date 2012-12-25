@@ -12,3 +12,4 @@ python-quantumclient
 python-novaclient
 python-keystoneclient
 pymysql
+MySQL-python
