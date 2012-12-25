@@ -35,6 +35,7 @@ class ServersTestBase(object):
             resp, server = self.client.create_server(name, self.image_ref,
                                                      self.flavor_ref,
                                                      adminPass='testpassword')
+            self.client.wait_for_server_status(server['id'], 'ACTIVE')
 
             #Verify the password is set correctly in the response
             self.assertEqual('testpassword', server['adminPass'])
