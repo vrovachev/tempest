@@ -13,3 +13,4 @@ python-novaclient
 python-keystoneclient
 pymysql
 MySQL-python
+netaddr
