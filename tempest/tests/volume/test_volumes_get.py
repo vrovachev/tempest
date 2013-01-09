@@ -85,14 +85,18 @@ class VolumesGetTestBase(object):
             resp, fetched_volume = self.client.get_volume(volume['id'])
             self.assertEqual(200, resp.status)
             self.assertEqual(fetched_volume['metadata'], {})
-        except:
-            self.fail("Could not get volume metadata")
         finally:
             if volume:
                 # Delete the Volume if it was created
                 resp, _ = self.client.delete_volume(volume['id'])
                 self.assertEqual(202, resp.status)
                 self.client.wait_for_resource_deletion(volume['id'])
+
+
+    @attr(type='positive')
+    def test_volume_get_metadata_none_retry(self):
+        for i in range(1,10):
+            self.test_volume_get_metadata_none()
 
 
 class VolumesGetTestXML(base.BaseVolumeTestXML, VolumesGetTestBase):

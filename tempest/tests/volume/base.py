@@ -20,6 +20,7 @@ import time
 import nose
 
 import unittest2 as unittest
+from common.isolated_creds import get_isolated_creds_common
 
 from tempest import config
 from tempest import openstack
@@ -83,29 +84,7 @@ class BaseVolumeTest(unittest.TestCase):
         **regular** user of the Volume API so that a test case can
         operate in an isolated tenant container.
         """
-        admin_client = cls._get_identity_admin_client()
-        rand_name_root = cls.__name__
-        if cls.isolated_creds:
-            # Main user already created. Create the alt one...
-            rand_name_root += '-alt'
-        username = rand_name_root + "-user"
-        email = rand_name_root + "@example.com"
-        tenant_name = rand_name_root + "-tenant"
-        tenant_desc = tenant_name + "-desc"
-        password = "pass"
-
-        resp, tenant = admin_client.create_tenant(name=tenant_name,
-                                                  description=tenant_desc)
-        resp, user = admin_client.create_user(username,
-                                              password,
-                                              tenant['id'],
-                                              email)
-        # Store the complete creds (including UUID ids...) for later
-        # but return just the username, tenant_name, password tuple
-        # that the various clients will use.
-        cls.isolated_creds.append((user, tenant))
-
-        return username, tenant_name, password
+        return get_isolated_creds_common(cls, LOG)
 
     @classmethod
     def clear_isolated_creds(cls):
