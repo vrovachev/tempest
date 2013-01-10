@@ -20,7 +20,7 @@ import time
 import nose
 
 import unittest2 as unittest
-from common.isolated_creds import get_isolated_creds_common
+from tempest.common.isolated_creds import get_isolated_creds_common
 
 from tempest import config
 from tempest import openstack
