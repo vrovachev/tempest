@@ -218,12 +218,10 @@ class TestNetworkBasicOps(smoke.DefaultClientSmokeTest):
         sg_name = rand_name('secgroup-smoke-')
         sg_desc = sg_name + " description"
         secgroup = client.security_groups.create(sg_name, sg_desc)
-        try:
-            self.assertEqual(secgroup.name, sg_name)
-            self.assertEqual(secgroup.description, sg_desc)
-            self.set_resource(sg_name, secgroup)
-        except AttributeError:
-            self.fail("SecurityGroup object not successfully created.")
+
+        self.assertEqual(secgroup.name, sg_name)
+        self.assertEqual(secgroup.description, sg_desc)
+        self.set_resource(sg_name, secgroup)
 
         # Add rules to the security group
         rulesets = [
@@ -245,10 +243,7 @@ class TestNetworkBasicOps(smoke.DefaultClientSmokeTest):
             }
         ]
         for ruleset in rulesets:
-            try:
-                client.security_group_rules.create(secgroup.id, **ruleset)
-            except Exception:
-                self.fail("Failed to create rule in security group.")
+            client.security_group_rules.create(secgroup.id, **ruleset)
 
         return secgroup
 
@@ -428,8 +423,6 @@ class TestNetworkBasicOps(smoke.DefaultClientSmokeTest):
         if not self.config.network.tenant_networks_reachable:
             msg = 'Tenant networks not configured to be reachable.'
             raise nose.SkipTest(msg)
-        if not self.servers:
-            raise nose.SkipTest("No VM's have been created")
         for server in self.servers:
             for net_name, ip_addresses in server.networks.iteritems():
                 for ip_address in ip_addresses:

@@ -162,6 +162,9 @@ class DefaultClientManager(Manager):
 
     def _get_network_client(self):
         # TODO(mnewby) add network-specific auth configuration
+        """
+        :rtype : quantumclient.v2_0.client.Client
+        """
         username = self.config.compute.username
         password = self.config.compute.password
         tenant_name = self.config.compute.tenant_name
