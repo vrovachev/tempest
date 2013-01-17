@@ -160,27 +160,36 @@ class DefaultClientManager(Manager):
                                                  tenant_name=tenant_name,
                                                  auth_url=auth_url)
 
-    def _get_network_client(self):
-        # TODO(mnewby) add network-specific auth configuration
-        """
-        :rtype : quantumclient.v2_0.client.Client
-        """
-        username = self.config.compute.username
-        password = self.config.compute.password
-        tenant_name = self.config.compute.tenant_name
-
+    def _get_specific_network_client(self, username, password, tenant_name):
         if None in (username, password, tenant_name):
             msg = ("Missing required credentials for network client. "
                    "username: %(username)s, password: %(password)s, "
                    "tenant_name: %(tenant_name)s") % locals()
             raise exceptions.InvalidConfiguration(msg)
-
         auth_url = self.config.identity.auth_url.rstrip('tokens')
+        client = quantumclient.v2_0.client.Client(username=username,
+            password=password,
+            tenant_name=tenant_name,
+            auth_url=auth_url)
+        return client
 
-        return quantumclient.v2_0.client.Client(username=username,
-                                                password=password,
-                                                tenant_name=tenant_name,
-                                                auth_url=auth_url)
+    def _get_network_client(self):
+        """
+        :rtype : quantumclient.v2_0.client.Client
+        """
+        return self._get_specific_network_client(self.config.compute.username, self.config.compute.password,
+            self.config.compute.tenant_name)
+
+    def _get_network_client_admin(self):
+        """
+        :rtype : quantumclient.v2_0.client.Client
+        """
+        return self._get_specific_network_client(self.config.compute_admin.username, self.config.compute_admin.password,
+            self.config.compute_admin.tenant_name)
+
+
+
+
 
 
 class ComputeFuzzClientManager(FuzzClientManager):
