@@ -15,18 +15,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nose.plugins.attrib import attr
-import unittest2 as unittest
 
+from nose.plugins.attrib import attr
+from nose.plugins.skip import SkipTest
 from tempest import exceptions
 from tempest.common.utils.data_utils import rand_name
 from tempest.tests.compute import base
 
-@unittest.skip("quantum")
+
 class FloatingIPDetailsTestBase(object):
 
     @staticmethod
     def setUpClass(cls):
+        if True:
+            raise SkipTest('quantum')
         cls.client = cls.floating_ips_client
         cls.floating_ip = []
         cls.floating_ip_id = []
@@ -35,6 +37,7 @@ class FloatingIPDetailsTestBase(object):
             resp, body = cls.client.create_floating_ip()
             cls.floating_ip.append(body)
             cls.floating_ip_id.append(body['id'])
+
 
     @staticmethod
     def tearDownClass(cls):

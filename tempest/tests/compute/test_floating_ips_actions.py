@@ -16,20 +16,22 @@
 #    under the License.
 
 from nose.plugins.attrib import attr
-import unittest2 as unittest
+from nose.plugins.skip import SkipTest
 
+import unittest2 as unittest
 from tempest import openstack
 from tempest import exceptions
 from tempest.common.utils.data_utils import rand_name
 from tempest.tests.compute import base
 
-@unittest.skip("quantum")
 class FloatingIPsTestBase(object):
     server_id = None
     floating_ip = None
 
     @staticmethod
     def setUpClass(cls):
+        if True:
+            raise SkipTest('quantum')
         cls.client = cls.floating_ips_client
         cls.servers_client = cls.servers_client
 
