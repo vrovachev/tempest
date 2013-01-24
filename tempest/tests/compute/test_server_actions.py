@@ -157,7 +157,7 @@ class ServerActionsTestBase(object):
         self.assertEqual(self.flavor_ref_alt, server['flavor']['id'])
 
     @attr(type='positive')
-    @unittest.skipIf(not resize_available, 'Resize not available.')
+    @unittest.skip('openstack bug')
     def test_resize_server_revert(self):
         """
         The server's RAM and disk space should return to its original

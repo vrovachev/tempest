@@ -22,7 +22,7 @@ from tempest import exceptions
 from tempest.common.utils.data_utils import rand_name
 from tempest.tests.compute import base
 
-
+@unittest.skip("quantum")
 class FloatingIPDetailsTestBase(object):
 
     @staticmethod

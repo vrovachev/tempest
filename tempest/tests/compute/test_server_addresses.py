@@ -14,6 +14,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import unittest2 as unittest
 
 from nose.plugins.attrib import attr
 
@@ -65,6 +66,7 @@ class ServerAddressesTest(BaseComputeTest):
                       ' be allowed')
 
     @attr(type='smoke', category='server-addresses')
+    @unittest.skip('quantum')
     def test_list_server_addresses(self):
         """All public and private addresses for
         a server should be returned"""
