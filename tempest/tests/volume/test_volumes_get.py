@@ -14,6 +14,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import unittest2 as unittest
 
 from nose.plugins.attrib import attr
 
@@ -67,6 +68,7 @@ class VolumesGetTestBase(object):
                 self.assertEqual(202, resp.status)
                 self.client.wait_for_resource_deletion(volume['id'])
 
+    @unittest.skip('bug')
     @attr(type='positive')
     def test_volume_get_metadata_none(self):
         """Create a volume without passing metadata, get details, and delete"""
@@ -93,6 +95,7 @@ class VolumesGetTestBase(object):
                 self.client.wait_for_resource_deletion(volume['id'])
 
 
+    @unittest.skip('bug')
     @attr(type='positive')
     def test_volume_get_metadata_none_retry(self):
         for i in range(1,10):
