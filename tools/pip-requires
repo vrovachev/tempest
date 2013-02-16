@@ -4,9 +4,10 @@ httplib2>=0.7.0
 pika
 unittest2
 lxml
-# Needed for whitebox testing
 paramiko
 sqlalchemy
+#https://bugs.launchpad.net/python-keystoneclient/+bug/1116740
+requests>=0.8.8,<1.0
 python-glanceclient
 python-quantumclient
 python-novaclient
