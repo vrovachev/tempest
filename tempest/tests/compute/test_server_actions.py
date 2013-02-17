@@ -139,6 +139,7 @@ class ServerActionsTestBase(object):
             self.assertTrue(linux_client.can_authenticate())
 
     @attr(type='smoke')
+    @unittest.skip('openstack bug')
     @unittest.skipIf(not resize_available, 'Resize not available.')
     def test_resize_server_confirm(self):
         """
