@@ -20,6 +20,7 @@ import httplib2
 import logging
 from lxml import etree
 import time
+import sys
 
 from tempest import exceptions
 from tempest.services.nova.xml.common import xml_to_json
@@ -187,7 +188,10 @@ class RestClient(object):
         self.log.error('Response Body: ' + str(resp_body))
 
     def _parse_resp(self, body):
-        return json.loads(body)
+        try:
+            return json.loads(body)
+        except ValueError:
+            raise Exception(str(body)),None,sys.exc_info()[2]
 
     def request(self, method, url, headers=None, body=None, depth=0):
         """A simple HTTP request interface."""
