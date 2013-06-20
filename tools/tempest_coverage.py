@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright 2012 IBM
+# Copyright 2012 IBM Corp.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -16,14 +16,13 @@
 
 import json
 import os
-import re
 import shutil
 import sys
 
+from oslo.config import cfg
+
 from tempest.common.rest_client import RestClient
 from tempest import config
-from tempest.openstack.common import cfg
-from tempest.tests.compute import base
 
 CONF = config.TempestConfig()
 
@@ -138,9 +137,9 @@ def parse_opts(argv):
 
 def main(argv):
     CLI = parse_opts(argv)
-    client_args = (CONF, CONF.compute_admin.username,
-                   CONF.compute_admin.password, CONF.identity.auth_url,
-                   CONF.compute_admin.tenant_name)
+    client_args = (CONF, CONF.identity.admin_username,
+                   CONF.identity.admin_password, CONF.identity.uri,
+                   CONF.identity.admin_tenant_name)
     coverage_client = CoverageClientJSON(*client_args)
 
     if CLI.command == 'start':
@@ -166,7 +165,7 @@ def main(argv):
             resp, body = coverage_client.report_coverage_xml(file=CLI.filename)
         elif CLI.html:
             resp, body = coverage_client.report_coverage_html(
-                                                            file=CLI.filename)
+                file=CLI.filename)
         else:
             resp, body = coverage_client.report_coverage(file=CLI.filename)
         if not resp['status'] == '200':

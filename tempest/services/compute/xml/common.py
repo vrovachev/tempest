@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
-# Copyright 2012 IBM
+# Copyright 2012 IBM Corp.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -14,8 +14,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-from lxml import etree
 
 XMLNS_11 = "http://docs.openstack.org/compute/api/v1.1"
 
@@ -98,10 +96,12 @@ def xml_to_json(node):
     """This does a really braindead conversion of an XML tree to
     something that looks like a json dump. In cases where the XML
     and json structures are the same, then this "just works". In
-    others, it requires a little hand-editing of the result."""
+    others, it requires a little hand-editing of the result.
+    """
     json = {}
     for attr in node.keys():
-        json[attr] = node.get(attr)
+        if not attr.startswith("xmlns"):
+            json[attr] = node.get(attr)
     if not node.getchildren():
         return node.text or json
     for child in node.getchildren():

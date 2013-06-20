@@ -15,12 +15,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
 import os
 import sys
 
-from tempest.common.utils import data_utils
-from tempest.openstack.common import cfg
+from oslo.config import cfg
+
+from tempest.common import log as logging
+from tempest.common.utils.misc import singleton
 
 LOG = logging.getLogger(__name__)
 
@@ -31,89 +32,21 @@ IdentityGroup = [
     cfg.StrOpt('catalog_type',
                default='identity',
                help="Catalog type of the Identity service."),
-    cfg.StrOpt('host',
-               default="127.0.0.1",
-               help="Host IP for making Identity API requests."),
-    cfg.IntOpt('port',
-               default=8773,
-               help="Port for the Identity service."),
-    cfg.StrOpt('api_version',
-               default="v1.1",
-               help="Version of the Identity API"),
-    cfg.StrOpt('path',
-               default='/',
-               help="Path of API request"),
-    cfg.BoolOpt('use_ssl',
+    cfg.BoolOpt('disable_ssl_certificate_validation',
                 default=False,
-                help="Specifies if we are using https."),
+                help="Set to True if using self-signed SSL certificates."),
+    cfg.StrOpt('uri',
+               default=None,
+               help="Full URI of the OpenStack Identity API (Keystone), v2"),
+    cfg.StrOpt('uri_v3',
+               help='Full URI of the OpenStack Identity API (Keystone), v3'),
     cfg.StrOpt('strategy',
                default='keystone',
                help="Which auth method does the environment use? "
                     "(basic|keystone)"),
     cfg.StrOpt('region',
-               default=None,
+               default='RegionOne',
                help="The identity region name to use."),
-]
-
-
-def register_identity_opts(conf):
-    conf.register_group(identity_group)
-    for opt in IdentityGroup:
-        conf.register_opt(opt, group='identity')
-
-    authurl = data_utils.build_url(conf.identity.host,
-                                   str(conf.identity.port),
-                                   conf.identity.api_version,
-                                   conf.identity.path,
-                                   use_ssl=conf.identity.use_ssl)
-
-    auth_url = cfg.StrOpt('auth_url',
-                          default=authurl,
-                          help="The Identity URL (derived)")
-    conf.register_opt(auth_url, group="identity")
-
-
-identity_admin_group = cfg.OptGroup(name='identity-admin',
-                                    title="Identity Admin Options")
-
-IdentityAdminGroup = [
-    cfg.StrOpt('username',
-               default='admin',
-               help="Username to use for Identity Admin API requests"),
-    cfg.StrOpt('tenant_name',
-               default='admin',
-               help="Tenant name to use for Identity Admin API requests"),
-    cfg.StrOpt('password',
-               default='pass',
-               help="API key to use for Identity Admin API requests",
-               secret=True),
-]
-
-
-def register_identity_admin_opts(conf):
-    conf.register_group(identity_admin_group)
-    for opt in IdentityAdminGroup:
-        conf.register_opt(opt, group='identity-admin')
-
-
-compute_group = cfg.OptGroup(name='compute',
-                             title='Compute Service Options')
-
-ComputeGroup = [
-    cfg.BoolOpt('allow_tenant_isolation',
-                default=False,
-                help="Allows test cases to create/destroy tenants and "
-                     "users. This option enables isolated test cases and "
-                     "better parallel execution, but also requires that "
-                     "OpenStack Identity API admin credentials are known."),
-    cfg.BoolOpt('allow_tenant_reuse',
-                default=True,
-                help="If allow_tenant_isolation is True and a tenant that "
-                     "would be created for a given test already exists (such "
-                     "as from a previously-failed run), re-use that tenant "
-                     "instead of failing because of the conflict. Note that "
-                     "this would result in the tenant being deleted at the "
-                     "end of a subsequent successful run."),
     cfg.StrOpt('username',
                default='demo',
                help="Username to use for Nova API requests."),
@@ -136,9 +69,45 @@ ComputeGroup = [
                default=None,
                help="API key to use when authenticating as alternate user.",
                secret=True),
-    cfg.StrOpt('region',
-               default=None,
-               help="The compute region name to use."),
+    cfg.StrOpt('admin_username',
+               default='admin',
+               help="Administrative Username to use for"
+                    "Keystone API requests."),
+    cfg.StrOpt('admin_tenant_name',
+               default='admin',
+               help="Administrative Tenant name to use for Keystone API "
+                    "requests."),
+    cfg.StrOpt('admin_password',
+               default='pass',
+               help="API key to use when authenticating as admin.",
+               secret=True),
+]
+
+
+def register_identity_opts(conf):
+    conf.register_group(identity_group)
+    for opt in IdentityGroup:
+        conf.register_opt(opt, group='identity')
+
+
+compute_group = cfg.OptGroup(name='compute',
+                             title='Compute Service Options')
+
+ComputeGroup = [
+    cfg.BoolOpt('allow_tenant_isolation',
+                default=False,
+                help="Allows test cases to create/destroy tenants and "
+                     "users. This option enables isolated test cases and "
+                     "better parallel execution, but also requires that "
+                     "OpenStack Identity API admin credentials are known."),
+    cfg.BoolOpt('allow_tenant_reuse',
+                default=True,
+                help="If allow_tenant_isolation is True and a tenant that "
+                     "would be created for a given test already exists (such "
+                     "as from a previously-failed run), re-use that tenant "
+                     "instead of failing because of the conflict. Note that "
+                     "this would result in the tenant being deleted at the "
+                     "end of a subsequent successful run."),
     cfg.StrOpt('image_ref',
                default="{$IMAGE_ID}",
                help="Valid secondary image reference to be used in tests."),
@@ -151,6 +120,13 @@ ComputeGroup = [
     cfg.IntOpt('flavor_ref_alt',
                default=2,
                help='Valid secondary flavor to be used in tests.'),
+    cfg.StrOpt('image_ssh_user',
+               default="root",
+               help="User name used to authenticate to an instance."),
+    cfg.StrOpt('image_alt_ssh_user',
+               default="root",
+               help="User name used to authenticate to an instance using "
+                    "the alternate image."),
     cfg.BoolOpt('resize_available',
                 default=False,
                 help="Does the test environment support resizing?"),
@@ -162,6 +138,10 @@ ComputeGroup = [
                 default=False,
                 help="Does the test environment use block devices for live "
                      "migration"),
+    cfg.BoolOpt('block_migrate_supports_cinder_iscsi',
+                default=False,
+                help="Does the test environment block migration support "
+                     "cinder iSCSI volumes"),
     cfg.BoolOpt('change_password_available',
                 default=False,
                 help="Does the test environment support changing the admin "
@@ -183,8 +163,15 @@ ComputeGroup = [
                help="User name used to authenticate to an instance."),
     cfg.IntOpt('ssh_timeout',
                default=300,
-               help="Timeout in seconds to wait for authentcation to "
+               help="Timeout in seconds to wait for authentication to "
                     "succeed."),
+    cfg.IntOpt('ssh_channel_timeout',
+               default=60,
+               help="Timeout in seconds to wait for output from ssh "
+                    "channel."),
+    cfg.StrOpt('fixed_network_name',
+               default='private',
+               help="Visible fixed network name "),
     cfg.StrOpt('network_for_ssh',
                default='public',
                help="Network used for SSH connections."),
@@ -194,25 +181,6 @@ ComputeGroup = [
     cfg.StrOpt('catalog_type',
                default='compute',
                help="Catalog type of the Compute service."),
-    cfg.StrOpt('log_level',
-               default="ERROR",
-               help="Level for logging compute API calls."),
-    cfg.BoolOpt('whitebox_enabled',
-                default=False,
-                help="Does the test environment support whitebox tests for "
-                     "Compute?"),
-    cfg.StrOpt('db_uri',
-               default=None,
-               help="Connection string to the database of Compute service"),
-    cfg.StrOpt('source_dir',
-               default="/opt/stack/nova",
-               help="Path of nova source directory"),
-    cfg.StrOpt('config_path',
-               default='/etc/nova/nova.conf',
-               help="Path of nova configuration file"),
-    cfg.StrOpt('bin_dir',
-               default="/usr/local/bin/",
-               help="Directory containing nova binaries such as nova-manage"),
     cfg.StrOpt('path_to_private_key',
                default=None,
                help="Path to a private key file for SSH access to remote "
@@ -253,32 +221,49 @@ def register_compute_admin_opts(conf):
         conf.register_opt(opt, group='compute-admin')
 
 
+whitebox_group = cfg.OptGroup(name='whitebox',
+                              title="Whitebox Options")
+
+WhiteboxGroup = [
+    cfg.BoolOpt('whitebox_enabled',
+                default=False,
+                help="Does the test environment support whitebox tests for "
+                     "Compute?"),
+    cfg.StrOpt('db_uri',
+               default=None,
+               help="Connection string to the database of Compute service"),
+    cfg.StrOpt('source_dir',
+               default="/opt/stack/nova",
+               help="Path of nova source directory"),
+    cfg.StrOpt('config_path',
+               default='/etc/nova/nova.conf',
+               help="Path of nova configuration file"),
+    cfg.StrOpt('bin_dir',
+               default="/usr/local/bin/",
+               help="Directory containing nova binaries such as nova-manage"),
+]
+
+
+def register_whitebox_opts(conf):
+    conf.register_group(whitebox_group)
+    for opt in WhiteboxGroup:
+        conf.register_opt(opt, group='whitebox')
+
+
 image_group = cfg.OptGroup(name='image',
                            title="Image Service Options")
 
 ImageGroup = [
-    cfg.StrOpt('host',
-               default='127.0.0.1',
-               help="Host IP for making Images API requests. Defaults to "
-                    "'127.0.0.1'."),
-    cfg.IntOpt('port',
-               default=9292,
-               help="Listen port of the Images service."),
     cfg.StrOpt('api_version',
                default='1',
                help="Version of the API"),
-    cfg.StrOpt('username',
-               default='demo',
-               help="Username to use for Images API requests. Defaults to "
-                    "'demo'."),
-    cfg.StrOpt('password',
-               default='pass',
-               help="Password for user",
-               secret=True),
-    cfg.StrOpt('tenant_name',
-               default="demo",
-               help="Tenant to use for Images API requests. Defaults to "
-                    "'demo'."),
+    cfg.StrOpt('catalog_type',
+               default='image',
+               help='Catalog type of the Image service.'),
+    cfg.StrOpt('http_image',
+               default='http://download.cirros-cloud.net/0.3.1/'
+               'cirros-0.3.1-x86_64-uec.tar.gz',
+               help='http accessable image')
 ]
 
 
@@ -295,19 +280,6 @@ NetworkGroup = [
     cfg.StrOpt('catalog_type',
                default='network',
                help='Catalog type of the Quantum service.'),
-    cfg.StrOpt('api_version',
-               default="v1.1",
-               help="Version of Quantum API"),
-    cfg.StrOpt('username',
-               default="demo",
-               help="Username to use for Quantum API requests."),
-    cfg.StrOpt('tenant_name',
-               default="demo",
-               help="Tenant name to use for Quantum API requests."),
-    cfg.StrOpt('password',
-               default="pass",
-               help="API key to use when authenticating as admin.",
-               secret=True),
     cfg.StrOpt('tenant_network_cidr',
                default="10.100.0.0/16",
                help="The cidr block to allocate tenant networks from"),
@@ -326,6 +298,9 @@ NetworkGroup = [
                default="",
                help="Id of the public router that provides external "
                     "connectivity"),
+    cfg.BoolOpt('quantum_available',
+                default=False,
+                help="Whether or not quantum is expected to be available"),
 ]
 
 
@@ -333,31 +308,6 @@ def register_network_opts(conf):
     conf.register_group(network_group)
     for opt in NetworkGroup:
         conf.register_opt(opt, group='network')
-
-network_admin_group = cfg.OptGroup(name='network-admin',
-                                   title="Network Admin Options")
-
-NetworkAdminGroup = [
-    cfg.StrOpt('username',
-               default='admin',
-               help="Administrative Username to use for Quantum API "
-                    "requests."),
-    cfg.StrOpt('tenant_name',
-               default='admin',
-               help="Administrative Tenant name to use for Quantum API "
-                    "requests."),
-    cfg.StrOpt('password',
-               default='pass',
-               help="API key to use when authenticating as admin.",
-               secret=True),
-]
-
-
-def register_network_admin_opts(conf):
-    conf.register_group(network_admin_group)
-    for opt in NetworkAdminGroup:
-        conf.register_opt(opt, group='network-admin')
-
 
 volume_group = cfg.OptGroup(name='volume',
                             title='Block Storage Options')
@@ -373,6 +323,15 @@ VolumeGroup = [
     cfg.StrOpt('catalog_type',
                default='Volume',
                help="Catalog type of the Volume Service"),
+    cfg.BoolOpt('multi_backend_enabled',
+                default=False,
+                help="Runs Cinder multi-backend test (requires 2 backends)"),
+    cfg.StrOpt('backend1_name',
+               default='BACKEND_1',
+               help="Name of the backend1 (must be declared in cinder.conf)"),
+    cfg.StrOpt('backend2_name',
+               default='BACKEND_2',
+               help="Name of the backend2 (must be declared in cinder.conf)"),
 ]
 
 
@@ -389,9 +348,14 @@ ObjectStoreConfig = [
     cfg.StrOpt('catalog_type',
                default='object-store',
                help="Catalog type of the Object-Storage service."),
-    cfg.StrOpt('region',
-               default=None,
-               help='The object-store region name to use.'),
+    cfg.StrOpt('container_sync_timeout',
+               default=120,
+               help="Number of seconds to time on waiting for a container"
+                    "to container synchronization complete."),
+    cfg.StrOpt('container_sync_interval',
+               default=5,
+               help="Number of seconds to wait while looping to check the"
+                    "status of a container to container synchronization"),
 ]
 
 
@@ -399,6 +363,48 @@ def register_object_storage_opts(conf):
     conf.register_group(object_storage_group)
     for opt in ObjectStoreConfig:
         conf.register_opt(opt, group='object-storage')
+
+
+orchestration_group = cfg.OptGroup(name='orchestration',
+                                   title='Orchestration Service Options')
+
+OrchestrationGroup = [
+    cfg.StrOpt('catalog_type',
+               default='orchestration',
+               help="Catalog type of the Orchestration service."),
+    cfg.BoolOpt('allow_tenant_isolation',
+                default=False,
+                help="Allows test cases to create/destroy tenants and "
+                     "users. This option enables isolated test cases and "
+                     "better parallel execution, but also requires that "
+                     "OpenStack Identity API admin credentials are known."),
+    cfg.IntOpt('build_interval',
+               default=1,
+               help="Time in seconds between build status checks."),
+    cfg.IntOpt('build_timeout',
+               default=300,
+               help="Timeout in seconds to wait for a stack to build."),
+    cfg.BoolOpt('heat_available',
+                default=False,
+                help="Whether or not Heat is expected to be available"),
+    cfg.StrOpt('instance_type',
+               default='m1.micro',
+               help="Instance type for tests. Needs to be big enough for a "
+                    "full OS plus the test workload"),
+    cfg.StrOpt('image_ref',
+               default=None,
+               help="Name of heat-cfntools enabled image to use when "
+                    "launching test instances."),
+    cfg.StrOpt('keypair_name',
+               default=None,
+               help="Name of existing keypair to launch servers with."),
+]
+
+
+def register_orchestration_opts(conf):
+    conf.register_group(orchestration_group)
+    for opt in OrchestrationGroup:
+        conf.register_opt(opt, group='orchestration')
 
 boto_group = cfg.OptGroup(name='boto',
                           title='EC2/S3 options')
@@ -416,9 +422,6 @@ BotoConfig = [
     cfg.StrOpt('aws_access',
                default=None,
                help="AWS Access Key"),
-    cfg.StrOpt('aws_region',
-               default=None,
-               help="AWS Region"),
     cfg.StrOpt('s3_materials_path',
                default="/opt/stack/devstack/files/images/"
                        "s3-materials/cirros-0.3.0",
@@ -455,17 +458,69 @@ def register_boto_opts(conf):
     for opt in BotoConfig:
         conf.register_opt(opt, group='boto')
 
+stress_group = cfg.OptGroup(name='stress', title='Stress Test Options')
 
-# TODO(jaypipes): Move this to a common utils (not data_utils...)
-def singleton(cls):
-    """Simple wrapper for classes that should only have a single instance."""
-    instances = {}
+StressGroup = [
+    cfg.StrOpt('nova_logdir',
+               default=None,
+               help='Directory containing log files on the compute nodes'),
+    cfg.IntOpt('max_instances',
+               default=16,
+               help='Maximum number of instances to create during test.'),
+    cfg.StrOpt('controller',
+               default=None,
+               help='Controller host.'),
+    # new stress options
+    cfg.StrOpt('target_controller',
+               default=None,
+               help='Controller host.'),
+    cfg.StrOpt('target_ssh_user',
+               default=None,
+               help='ssh user.'),
+    cfg.StrOpt('target_private_key_path',
+               default=None,
+               help='Path to private key.'),
+    cfg.StrOpt('target_logfiles',
+               default=None,
+               help='regexp for list of log files.'),
+    cfg.StrOpt('log_check_interval',
+               default=60,
+               help='time between log file error checks.')
+]
 
-    def getinstance():
-        if cls not in instances:
-            instances[cls] = cls()
-        return instances[cls]
-    return getinstance
+
+def register_stress_opts(conf):
+    conf.register_group(stress_group)
+    for opt in StressGroup:
+        conf.register_opt(opt, group='stress')
+
+
+scenario_group = cfg.OptGroup(name='scenario', title='Scenario Test Options')
+
+ScenarioGroup = [
+    cfg.StrOpt('img_dir',
+               default='/opt/stack/new/devstack/files/images/'
+               'cirros-0.3.1-x86_64-uec',
+               help='Directory containing image files'),
+    cfg.StrOpt('ami_img_file',
+               default='cirros-0.3.1-x86_64-blank.img',
+               help='AMI image file name'),
+    cfg.StrOpt('ari_img_file',
+               default='cirros-0.3.1-x86_64-initrd',
+               help='ARI image file name'),
+    cfg.StrOpt('aki_img_file',
+               default='cirros-0.3.1-x86_64-vmlinuz',
+               help='AKI image file name'),
+    cfg.StrOpt('ssh_user',
+               default='cirros',
+               help='ssh username for the image file')
+]
+
+
+def register_scenario_opts(conf):
+    conf.register_group(scenario_group)
+    for opt in ScenarioGroup:
+        conf.register_opt(opt, group='scenario')
 
 
 @singleton
@@ -480,6 +535,9 @@ class TempestConfig:
 
     def __init__(self):
         """Initialize a configuration from a conf directory and conf file."""
+        config_files = []
+
+        failsafe_path = "/etc/tempest/" + self.DEFAULT_CONFIG_FILE
 
         # Environment variables override defaults...
         conf_dir = os.environ.get('TEMPEST_CONFIG_DIR',
@@ -488,37 +546,46 @@ class TempestConfig:
 
         path = os.path.join(conf_dir, conf_file)
 
-        if (not os.path.isfile(path) and
-                not 'TEMPEST_CONFIG_DIR' in os.environ and
-                not 'TEMPEST_CONFIG' in os.environ):
-            path = "/etc/tempest/" + self.DEFAULT_CONFIG_FILE
+        if not (os.path.isfile(path) or
+                'TEMPEST_CONFIG_DIR' in os.environ or
+                'TEMPEST_CONFIG' in os.environ):
+            path = failsafe_path
 
         LOG.info("Using tempest config file %s" % path)
 
         if not os.path.exists(path):
             msg = "Config file %(path)s not found" % locals()
             print >> sys.stderr, RuntimeError(msg)
-            sys.exit(os.EX_NOINPUT)
+        else:
+            config_files.append(path)
 
-        cfg.CONF([], project='tempest', default_config_files=[path])
+        cfg.CONF([], project='tempest', default_config_files=config_files)
 
         register_compute_opts(cfg.CONF)
         register_identity_opts(cfg.CONF)
-        register_identity_admin_opts(cfg.CONF)
-        register_compute_admin_opts(cfg.CONF)
+        register_whitebox_opts(cfg.CONF)
         register_image_opts(cfg.CONF)
         register_network_opts(cfg.CONF)
-        register_network_admin_opts(cfg.CONF)
         register_volume_opts(cfg.CONF)
         register_object_storage_opts(cfg.CONF)
+        register_orchestration_opts(cfg.CONF)
         register_boto_opts(cfg.CONF)
+        register_compute_admin_opts(cfg.CONF)
+        register_stress_opts(cfg.CONF)
+        register_scenario_opts(cfg.CONF)
         self.compute = cfg.CONF.compute
-        self.compute_admin = cfg.CONF['compute-admin']
+        self.whitebox = cfg.CONF.whitebox
         self.identity = cfg.CONF.identity
-        self.identity_admin = cfg.CONF['identity-admin']
         self.images = cfg.CONF.image
         self.network = cfg.CONF.network
-        self.network_admin = cfg.CONF['network-admin']
         self.volume = cfg.CONF.volume
         self.object_storage = cfg.CONF['object-storage']
+        self.orchestration = cfg.CONF.orchestration
         self.boto = cfg.CONF.boto
+        self.compute_admin = cfg.CONF['compute-admin']
+        self.stress = cfg.CONF.stress
+        self.scenario = cfg.CONF.scenario
+        if not self.compute_admin.username:
+            self.compute_admin.username = self.identity.admin_username
+            self.compute_admin.password = self.identity.admin_password
+            self.compute_admin.tenant_name = self.identity.admin_tenant_name

@@ -19,6 +19,7 @@ import json
 import urllib
 
 from tempest.common.rest_client import RestClient
+from tempest import exceptions
 
 
 class SecurityGroupsClientJSON(RestClient):
@@ -95,3 +96,12 @@ class SecurityGroupsClientJSON(RestClient):
     def delete_security_group_rule(self, group_rule_id):
         """Deletes the provided Security Group rule."""
         return self.delete('os-security-group-rules/%s' % str(group_rule_id))
+
+    def list_security_group_rules(self, security_group_id):
+        """List all rules for a security group."""
+        resp, body = self.get('os-security-groups')
+        body = json.loads(body)
+        for sg in body['security_groups']:
+            if sg['id'] == security_group_id:
+                return resp, sg['rules']
+        raise exceptions.NotFound('No such Security Group')

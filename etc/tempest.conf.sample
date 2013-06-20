@@ -7,23 +7,40 @@
 # custom Keystone service catalog implementation, you probably want to leave
 # this value as "identity"
 catalog_type = identity
-# Set to True if your test environment's Keystone authentication service should
-# be accessed over HTTPS
-use_ssl = False
-# This is the main host address of the authentication service API
-host = 127.0.0.1
-# Port that the authentication service API is running on
-port = 5000
-# Version of the authentication service API (a string)
-api_version = v2.0
-# Path to the authentication service tokens resource (do not modify unless you
-# have a custom authentication API and are not using Keystone)
-path = tokens
+# Ignore SSL certificate validation failures? Use when in testing
+# environments that have self-signed SSL certs.
+disable_ssl_certificate_validation = False
+# URL for where to find the OpenStack Identity API endpoint (Keystone)
+uri = http://127.0.0.1:5000/v2.0/
+# URL for where to find the OpenStack V3 Identity API endpoint (Keystone)
+uri_v3 = http://127.0.0.1:5000/v3/
 # Should typically be left as keystone unless you have a non-Keystone
 # authentication API service
 strategy = keystone
 # The identity region
 region = RegionOne
+
+# This should be the username of a user WITHOUT administrative privileges
+username = demo
+# The above non-administrative user's password
+password = secret
+# The above non-administrative user's tenant name
+tenant_name = demo
+
+# This should be the username of an alternate user WITHOUT
+# administrative privileges
+alt_username = alt_demo
+# The above non-administrative user's password
+alt_password = secret
+# The above non-administrative user's tenant name
+alt_tenant_name = alt_demo
+
+# This should be the username of a user WITH administrative privileges
+admin_username = admin
+# The above administrative user's password
+admin_password = secret
+# The above administrative user's tenant name
+admin_tenant_name = admin
 
 [compute]
 # This section contains configuration options used when executing tests
@@ -41,30 +58,16 @@ allow_tenant_isolation = true
 # are known.
 allow_tenant_reuse = true
 
-# This should be the username of a user WITHOUT administrative privileges
-username = demo
-# The above non-administrative user's password
-password = pass
-# The above non-administrative user's tenant name
-tenant_name = demo
-
-# This should be the username of an alternate user WITHOUT
-# administrative privileges
-alt_username = alt_demo
-# The above non-administrative user's password
-alt_password = pass
-# The above non-administrative user's tenant name
-alt_tenant_name = alt_demo
-
-# The compute region
-region = RegionOne
-
 # Reference data for tests. The ref and ref_alt should be
 # distinct images/flavors.
 image_ref = {$IMAGE_ID}
 image_ref_alt = {$IMAGE_ID_ALT}
 flavor_ref = 1
 flavor_ref_alt = 2
+
+# User names used to authenticate to an instance for a given image.
+image_ssh_user = root
+image_alt_ssh_user = root
 
 # Number of seconds to wait while looping to check the status of an
 # instance that is building.
@@ -80,16 +83,22 @@ build_timeout = 600
 run_ssh = false
 
 # Name of a user used to authenticated to an instance
-ssh_user = {$SSH_USER}
+ssh_user = cirros
+
+# Visible fixed network name
+fixed_network_name = private
 
 # Network id used for SSH (public, private, etc)
-network_for_ssh = {$SSH_NETWORK}
+network_for_ssh = private
 
 # IP version of the address used for SSH
-ip_version_for_ssh = {$SSH_IP_VERSION}
+ip_version_for_ssh = 4
 
 # Number of seconds to wait to authenticate to an instance
 ssh_timeout = 300
+
+# Number of seconds to wait for output from ssh channel
+ssh_channel_timeout = 60
 
 # The type of endpoint for a Compute API service. Unless you have a
 # custom Keystone service catalog implementation, you probably want to leave
@@ -107,9 +116,24 @@ resize_available = true
 # Does the compute API support changing the admin password?
 change_password_available=true
 
-# Level to log Compute API request/response details.
-log_level = ERROR
+# Run live migration tests (requires 2 hosts)
+live_migration_available = false
 
+# Use block live migration (Otherwise, non-block migration will be
+# performed, which requires XenServer pools in case of using XS)
+use_block_migration_for_live_migration = false
+
+# Supports iSCSI block migration - depends on a XAPI supporting
+# relax-xsm-sr-check
+block_migrate_supports_cinder_iscsi = false
+
+# By default, rely on the status of the diskConfig extension to
+# decide if to execute disk config tests. When set to false, tests
+# are forced to skip, regardless of the extension status
+disk_config_enabled_override = true
+
+
+[whitebox]
 # Whitebox options for compute. Whitebox options enable the
 # whitebox test cases, which look at internal Nova database state,
 # SSH into VMs to check instance state, etc.
@@ -126,23 +150,20 @@ config_path = /etc/nova/nova.conf
 # Directory containing nova binaries such as nova-manage
 bin_dir = /usr/local/bin
 
+# Connection string to the database of Compute service
+db_uri = mysql://nova:secret@localhost/nova
+
 # Path to a private key file for SSH access to remote hosts
 path_to_private_key = /home/user/.ssh/id_rsa
 
-# Connection string to the database of Compute service
-db_uri = mysql://user:pass@localhost/nova
-
-# Run live migration tests (requires 2 hosts)
-live_migration_available = false
-
-# Use block live migration (Otherwise, non-block migration will be
-# performed, which requires XenServer pools in case of using XS)
-use_block_migration_for_live_migration = false
-
-# By default, rely on the status of the diskConfig extension to
-# decide if to execute disk config tests. When set to false, tests
-# are forced to skip, regardless of the extension status
-disk_config_enabled_override = true
+[compute-admin]
+# This should be the username of a user WITH administrative privileges
+# If not defined the admin user from the identity section will be used
+username =
+# The above administrative user's password
+password =
+# The above administrative user's tenant name
+tenant_name =
 
 [image]
 # This section contains configuration options used when executing tests
@@ -156,30 +177,8 @@ catalog_type = image
 # The version of the OpenStack Images API to use
 api_version = 1
 
-# This is the main host address of the Image API
-host = 127.0.0.1
-
-# Port that the Image API is running on
-port = 9292
-
-# This should be the username of a user WITHOUT administrative privileges
-username = demo
-# The above non-administrative user's password
-password = pass
-# The above non-administrative user's tenant name
-tenant_name = demo
-
-[compute-admin]
-# This section contains configuration options for an administrative
-# user of the Compute API. These options are used in tests that stress
-# the admin-only parts of the Compute API
-
-# This should be the username of a user WITH administrative privileges
-username = admin
-# The above administrative user's password
-password = pass
-# The above administrative user's tenant name
-tenant_name = admin
+# HTTP image to use for glance http image testing
+http_image = http://download.cirros-cloud.net/0.3.1/cirros-0.3.1-x86_64-uec.tar.gz
 
 [network]
 # This section contains configuration options used when executing tests
@@ -190,19 +189,12 @@ api_version = v1.1
 # Catalog type of the Quantum Service
 catalog_type = network
 
-# This should be the username of a user WITHOUT administrative privileges
-username = demo
-# The above non-administrative user's password
-password = pass
-# The above non-administrative user's tenant name
-tenant_name = demo
-
 # A large private cidr block from which to allocate smaller blocks for
 # tenant networks.
 tenant_network_cidr = 10.100.0.0/16
 
 # The mask bits used to partition the tenant block.
-tenant_network_mask_bits = 29
+tenant_network_mask_bits = 28
 
 # If tenant networks are reachable, connectivity checks will be
 # performed directly against addresses on those networks.
@@ -217,28 +209,8 @@ public_network_id = {$PUBLIC_NETWORK_ID}
 # for each tenant to have their own router.
 public_router_id = {$PUBLIC_ROUTER_ID}
 
-[network-admin]
-# This section contains configuration options for an administrative
-# user of the Network API.
-
-# This should be the username of a user WITH administrative privileges
-username = admin
-# The above administrative user's password
-password = pass
-# The above administrative user's tenant name
-tenant_name = admin
-
-[identity-admin]
-# This section contains configuration options for an administrative
-# user of the Compute API. These options are used in tests that stress
-# the admin-only parts of the Compute API
-
-# This should be the username of a user WITH administrative privileges
-username = admin
-# The above administrative user's password
-password = pass
-# The above administrative user's tenant name
-tenant_name = admin
+# Whether or not quantum is expected to be available
+quantum_available = false
 
 [volume]
 # This section contains the configuration options used when executing tests
@@ -254,6 +226,12 @@ build_interval = 10
 # Number of seconds to time out on waiting for a volume
 # to be available or reach an expected status
 build_timeout = 300
+# Runs Cinder multi-backend tests (requires 2 backends declared in cinder.conf)
+# They must have different volume_backend_name (backend1_name and backend2_name
+# have to be different)
+multi_backend_enabled = false
+backend1_name = BACKEND_1
+backend2_name = BACKEND_2
 
 [object-storage]
 # This section contains configuration options used when executing tests
@@ -266,9 +244,12 @@ build_timeout = 300
 # this value as "object-store"
 catalog_type = object-store
 
-# The object-store region
-region = RegionOne
-
+# Number of seconds to time on waiting for a container to container
+# synchronization complete
+container_sync_timeout = 120
+# Number of seconds to wait while looping to check the status of a
+# container to container synchronization
+container_sync_interval = 5
 
 [boto]
 # This section contains configuration options used when executing tests
@@ -283,25 +264,22 @@ s3_url = http://localhost:3333
 aws_access =
 aws_secret =
 
-#Region
-aws_region = RegionOne
-
 #Image materials for S3 upload
 # ALL content of the specified directory will be uploaded to S3
-s3_materials_path = /opt/stack/devstack/files/images/s3-materials/cirros-0.3.0
+s3_materials_path = /opt/stack/devstack/files/images/s3-materials/cirros-0.3.1
 
 # The manifest.xml files, must be in the s3_materials_path directory
 # Subdirectories not allowed!
 # The filenames will be used as a Keys in the S3 Buckets
 
 #ARI Ramdisk manifest. Must be in the above s3_materials_path
-ari_manifest = cirros-0.3.0-x86_64-initrd.manifest.xml
+ari_manifest = cirros-0.3.1-x86_64-initrd.manifest.xml
 
 #AMI Machine Image manifest. Must be in the above s3_materials_path
-ami_manifest = cirros-0.3.0-x86_64-blank.img.manifest.xml
+ami_manifest = cirros-0.3.1-x86_64-blank.img.manifest.xml
 
 #AKI Kernel Image manifest, Must be in the above s3_materials_path
-aki_manifest = cirros-0.3.0-x86_64-vmlinuz.manifest.xml
+aki_manifest = cirros-0.3.1-x86_64-vmlinuz.manifest.xml
 
 #Instance type
 instance_type = m1.tiny
@@ -317,3 +295,42 @@ build_timeout = 120
 
 # Status change wait interval
 build_interval = 1
+
+[orchestration]
+# Status change wait interval
+build_interval = 1
+
+# Status change wait timout. This may vary across environments as some some
+# tests spawn full VMs, which could be slow if the test is already in a VM.
+build_timeout = 300
+
+# Whether or not Heat is expected to be available
+heat_available = false
+
+# Instance type for tests. Needs to be big enough for a
+# full OS plus the test workload
+instance_type = m1.micro
+
+# Name of heat-cfntools enabled image to use when launching test instances
+# If not specified, tests that spawn instances will not run
+#image_ref = ubuntu-vm-heat-cfntools
+
+# Name of existing keypair to launch servers with. The default is not to specify
+# any key, which will generate a keypair for each test class
+#keypair_name = heat_key
+
+[scenario]
+# Directory containing image files
+img_dir = /opt/stack/new/devstack/files/images/cirros-0.3.1-x86_64-uec
+
+# AMI image file name
+ami_img_file = cirros-0.3.1-x86_64-blank.img
+
+# ARI image file name
+ari_img_file = cirros-0.3.1-x86_64-initrd
+
+# AKI image file name
+aki_img_file = cirros-0.3.1-x86_64-vmlinuz
+
+# ssh username for the image file
+ssh_user = cirros

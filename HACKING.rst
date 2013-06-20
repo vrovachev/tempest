@@ -1,3 +1,7 @@
+Tempest Coding Guide
+====================
+
+
 Test Data/Configuration
 -----------------------
 - Assume nothing about existing test data
@@ -56,8 +60,8 @@ Example::
   import logging
   import random
   import StringIO
+  import testtools
   import time
-  import unittest
 
   import eventlet
   import webob.exc
@@ -153,10 +157,38 @@ Rather than constructing parameters inline, it is better to break things up::
                              kwarg2=dict_of_numbers)
 
 
+Test Skips
+----------
+If a test is broken because of a bug it is appropriate to skip the test until
+bug has been fixed. However, the skip message should be formatted so that
+Tempest's skip tracking tool can watch the bug status. The skip message should
+contain the string 'Bug' immediately followed by a space. Then the bug number
+should be included in the message '#' in front of the number.
+
+Example::
+
+  @testtools.skip("Skipped until the Bug #980688 is resolved")
+
+
+openstack-common
+----------------
+
+A number of modules from openstack-common are imported into the project.
+
+These modules are "incubating" in openstack-common and are kept in sync
+with the help of openstack-common's update.py script. See:
+
+  http://wiki.openstack.org/CommonLibrary#Incubation
+
+The copy of the code should never be directly modified here. Please
+always update openstack-common first and then run the script to copy
+the changes across.
+
+
 OpenStack Trademark
 -------------------
 
-OpenStack is a registered trademark of OpenStack, LLC, and uses the
+OpenStack is a registered trademark of the OpenStack Foundation, and uses the
 following capitalization:
 
    OpenStack

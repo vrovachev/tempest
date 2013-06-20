@@ -16,7 +16,7 @@
 #    under the License.
 
 
-from cStringIO import StringIO
+import cStringIO
 import select
 import socket
 import time
@@ -28,7 +28,6 @@ from tempest import exceptions
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     import paramiko
-    from paramiko import RSAKey
 
 
 class Client(object):
@@ -39,7 +38,8 @@ class Client(object):
         self.username = username
         self.password = password
         if isinstance(pkey, basestring):
-            pkey = RSAKey.from_private_key(StringIO(str(pkey)))
+            pkey = paramiko.RSAKey.from_private_key(
+                cStringIO.StringIO(str(pkey)))
         self.pkey = pkey
         self.look_for_keys = look_for_keys
         self.key_filename = key_filename
@@ -47,9 +47,10 @@ class Client(object):
         self.channel_timeout = float(channel_timeout)
         self.buf_size = 1024
 
-    def _get_ssh_connection(self):
+    def _get_ssh_connection(self, sleep=1.5, backoff=1.01):
         """Returns an ssh connection to the specified host."""
         _timeout = True
+        bsleep = sleep
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(
             paramiko.AutoAddPolicy())
@@ -64,10 +65,10 @@ class Client(object):
                             timeout=self.timeout, pkey=self.pkey)
                 _timeout = False
                 break
-            except socket.error:
-                continue
-            except paramiko.AuthenticationException:
-                time.sleep(5)
+            except (socket.error,
+                    paramiko.AuthenticationException):
+                time.sleep(bsleep)
+                bsleep *= backoff
                 continue
         if _timeout:
             raise exceptions.SSHTimeout(host=self.host,
@@ -106,6 +107,7 @@ class Client(object):
         ssh = self._get_ssh_connection()
         transport = ssh.get_transport()
         channel = transport.open_session()
+        channel.fileno()  # Register event pipe
         channel.exec_command(cmd)
         channel.shutdown_write()
         out_data = []
@@ -116,8 +118,8 @@ class Client(object):
             ready = select.select(*select_params)
             if not any(ready):
                 raise exceptions.TimeoutException(
-                        "Command: '{0}' executed on host '{1}'.".format(
-                            cmd, self.host))
+                    "Command: '{0}' executed on host '{1}'.".format(
+                        cmd, self.host))
             if not ready[0]:        # If there is nothing to read.
                 continue
             out_chunk = err_chunk = None
@@ -132,8 +134,8 @@ class Client(object):
         exit_status = channel.recv_exit_status()
         if 0 != exit_status:
             raise exceptions.SSHExecCommandFailed(
-                    command=cmd, exit_status=exit_status,
-                    strerror=''.join(err_data))
+                command=cmd, exit_status=exit_status,
+                strerror=''.join(err_data))
         return ''.join(out_data)
 
     def test_connection_auth(self):

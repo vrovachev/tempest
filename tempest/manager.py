@@ -15,24 +15,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
-
-# Default client libs
-import glanceclient
-import keystoneclient.v2_0.client
-import novaclient.client
-try:
-    import quantumclient.v2_0.client
-except ImportError:
-    pass
-
+from tempest.common import log as logging
 import tempest.config
 from tempest import exceptions
 # Tempest REST Fuzz testing client libs
-from tempest.services.compute.json import console_output_client
 from tempest.services.compute.json import extensions_client
 from tempest.services.compute.json import flavors_client
 from tempest.services.compute.json import floating_ips_client
+from tempest.services.compute.json import hypervisor_client
 from tempest.services.compute.json import images_client
 from tempest.services.compute.json import keypairs_client
 from tempest.services.compute.json import limits_client
@@ -41,6 +31,7 @@ from tempest.services.compute.json import security_groups_client
 from tempest.services.compute.json import servers_client
 from tempest.services.compute.json import volumes_extensions_client
 from tempest.services.network.json import network_client
+from tempest.services.volume.json import snapshots_client
 from tempest.services.volume.json import volumes_client
 
 NetworkClient = network_client.NetworkClient
@@ -54,8 +45,9 @@ SecurityGroupsClient = security_groups_client.SecurityGroupsClientJSON
 KeyPairsClient = keypairs_client.KeyPairsClientJSON
 VolumesExtensionsClient = volumes_extensions_client.VolumesExtensionsClientJSON
 VolumesClient = volumes_client.VolumesClientJSON
-ConsoleOutputsClient = console_output_client.ConsoleOutputsClientJSON
-QuotasClient = quotas_client.QuotasClient
+SnapshotsClient = snapshots_client.SnapshotsClientJSON
+QuotasClient = quotas_client.QuotasClientJSON
+HypervisorClient = hypervisor_client.HypervisorClientJSON
 
 LOG = logging.getLogger(__name__)
 
@@ -86,114 +78,6 @@ class FuzzClientManager(Manager):
     pass
 
 
-class DefaultClientManager(Manager):
-
-    """
-    Manager that provides the default clients to access the various
-    OpenStack APIs.
-    """
-
-    NOVACLIENT_VERSION = '2'
-
-    def __init__(self):
-        super(DefaultClientManager, self).__init__()
-        self.compute_client = self._get_compute_client()
-        self.image_client = self._get_image_client()
-        self.identity_client = self._get_identity_client()
-        self.network_client = self._get_network_client()
-        self.client_attr_names = [
-            'compute_client',
-            'image_client',
-            'identity_client',
-            'network_client',
-        ]
-
-    def _get_compute_client(self, username=None, password=None,
-                            tenant_name=None):
-        # Novaclient will not execute operations for anyone but the
-        # identified user, so a new client needs to be created for
-        # each user that operations need to be performed for.
-        if not username:
-            username = self.config.compute.username
-        if not password:
-            password = self.config.compute.password
-        if not tenant_name:
-            tenant_name = self.config.compute.tenant_name
-
-        if None in (username, password, tenant_name):
-            msg = ("Missing required credentials for compute client. "
-                   "username: %(username)s, password: %(password)s, "
-                   "tenant_name: %(tenant_name)s") % locals()
-            raise exceptions.InvalidConfiguration(msg)
-
-        # Novaclient adds a /tokens/ part to the auth URL automatically
-        auth_url = self.config.identity.auth_url.rstrip('tokens')
-
-        client_args = (username, password, tenant_name, auth_url)
-
-        # Create our default Nova client to use in testing
-        service_type = self.config.compute.catalog_type
-        return novaclient.client.Client(self.NOVACLIENT_VERSION,
-                                        *client_args,
-                                        service_type=service_type,
-                                        no_cache=True)
-
-    def _get_image_client(self):
-        keystone = self._get_identity_client()
-        token = keystone.auth_token
-        endpoint = keystone.service_catalog.url_for(service_type='image',
-                                                    endpoint_type='publicURL')
-        return glanceclient.Client('1', endpoint=endpoint, token=token)
-
-    def _get_identity_client(self, username=None, password=None,
-                             tenant_name=None):
-        # This identity client is not intended to check the security
-        # of the identity service, so use admin credentials by default.
-        if not username:
-            username = self.config.identity_admin.username
-        if not password:
-            password = self.config.identity_admin.password
-        if not tenant_name:
-            tenant_name = self.config.identity_admin.tenant_name
-
-        if None in (username, password, tenant_name):
-            msg = ("Missing required credentials for identity client. "
-                   "username: %(username)s, password: %(password)s, "
-                   "tenant_name: %(tenant_name)s") % locals()
-            raise exceptions.InvalidConfiguration(msg)
-
-        auth_url = self.config.identity.auth_url.rstrip('tokens')
-
-        return keystoneclient.v2_0.client.Client(username=username,
-                                                 password=password,
-                                                 tenant_name=tenant_name,
-                                                 auth_url=auth_url)
-
-    def _get_network_client(self):
-        # The intended configuration is for the network client to have
-        # admin privileges and indicate for whom resources are being
-        # created via a 'tenant_id' parameter.  This will often be
-        # preferable to authenticating as a specific user because
-        # working with certain resources (public routers and networks)
-        # often requires admin privileges anyway.
-        username = self.config.network_admin.username
-        password = self.config.network_admin.password
-        tenant_name = self.config.network_admin.tenant_name
-
-        if None in (username, password, tenant_name):
-            msg = ("Missing required credentials for network client. "
-                   "username: %(username)s, password: %(password)s, "
-                   "tenant_name: %(tenant_name)s") % locals()
-            raise exceptions.InvalidConfiguration(msg)
-
-        auth_url = self.config.identity.auth_url.rstrip('tokens')
-
-        return quantumclient.v2_0.client.Client(username=username,
-                                                password=password,
-                                                tenant_name=tenant_name,
-                                                auth_url=auth_url)
-
-
 class ComputeFuzzClientManager(FuzzClientManager):
 
     """
@@ -215,9 +99,9 @@ class ComputeFuzzClientManager(FuzzClientManager):
 
         # If no creds are provided, we fall back on the defaults
         # in the config file for the Compute API.
-        username = username or self.config.compute.username
-        password = password or self.config.compute.password
-        tenant_name = tenant_name or self.config.compute.tenant_name
+        username = username or self.config.identity.username
+        password = password or self.config.identity.password
+        tenant_name = tenant_name or self.config.identity.tenant_name
 
         if None in (username, password, tenant_name):
             msg = ("Missing required credentials. "
@@ -225,7 +109,11 @@ class ComputeFuzzClientManager(FuzzClientManager):
                    "tenant_name: %(tenant_name)s") % locals()
             raise exceptions.InvalidConfiguration(msg)
 
-        auth_url = self.config.identity.auth_url
+        auth_url = self.config.identity.uri
+
+        # Ensure /tokens is in the URL for Keystone...
+        if 'tokens' not in auth_url:
+            auth_url = auth_url.rstrip('/') + '/tokens'
 
         if self.config.identity.strategy == 'keystone':
             client_args = (self.config, username, password, auth_url,
@@ -243,9 +131,10 @@ class ComputeFuzzClientManager(FuzzClientManager):
         self.floating_ips_client = FloatingIPsClient(*client_args)
         self.volumes_extensions_client = VolumesExtensionsClient(*client_args)
         self.volumes_client = VolumesClient(*client_args)
-        self.console_outputs_client = ConsoleOutputsClient(*client_args)
+        self.snapshots_client = SnapshotsClient(*client_args)
         self.quotas_client = QuotasClient(*client_args)
         self.network_client = NetworkClient(*client_args)
+        self.hypervisor_client = HypervisorClient(*client_args)
 
 
 class ComputeFuzzClientAltManager(Manager):
@@ -258,9 +147,9 @@ class ComputeFuzzClientAltManager(Manager):
     def __init__(self):
         conf = tempest.config.TempestConfig()
         super(ComputeFuzzClientAltManager, self).__init__(
-            conf.compute.alt_username,
-            conf.compute.alt_password,
-            conf.compute.alt_tenant_name)
+            conf.identity.alt_username,
+            conf.identity.alt_password,
+            conf.identity.alt_tenant_name)
 
 
 class ComputeFuzzClientAdminManager(Manager):

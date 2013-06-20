@@ -1,6 +1,7 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
 # Copyright 2012 OpenStack, LLC
+# Copyright 2013 Hewlett-Packard Development Company, L.P.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -25,9 +26,11 @@ from tempest import exceptions
 
 class ServersClientJSON(RestClient):
 
-    def __init__(self, config, username, password, auth_url, tenant_name=None):
+    def __init__(self, config, username, password, auth_url, tenant_name=None,
+                 auth_version='v2'):
         super(ServersClientJSON, self).__init__(config, username, password,
-                                                auth_url, tenant_name)
+                                                auth_url, tenant_name,
+                                                auth_version=auth_version)
         self.service = self.config.compute.catalog_type
 
     def create_server(self, name, image_ref, flavor_ref, **kwargs):
@@ -51,6 +54,7 @@ class ServersClientJSON(RestClient):
         min_count: Count of minimum number of instances to launch.
         max_count: Count of maximum number of instances to launch.
         disk_config: Determines if user or admin controls disk configuration.
+        return_reservation_id: Enable/Disable the return of reservation id
         """
         post_body = {
             'name': name,
@@ -62,7 +66,8 @@ class ServersClientJSON(RestClient):
                        'security_groups', 'networks', 'user_data',
                        'availability_zone', 'accessIPv4', 'accessIPv6',
                        'min_count', 'max_count', ('metadata', 'meta'),
-                       ('OS-DCF:diskConfig', 'disk_config')]:
+                       ('OS-DCF:diskConfig', 'disk_config'),
+                       'return_reservation_id']:
             if isinstance(option, tuple):
                 post_param = option[0]
                 key = option[1]
@@ -76,6 +81,10 @@ class ServersClientJSON(RestClient):
         resp, body = self.post('servers', post_body, self.headers)
 
         body = json.loads(body)
+        # NOTE(maurosr): this deals with the case of multiple server create
+        # with return reservation id set True
+        if 'reservation_id' in body:
+            return resp, body
         return resp, body['server']
 
     def update_server(self, server_id, name=None, meta=None, accessIPv4=None,
@@ -195,108 +204,50 @@ class ServersClientJSON(RestClient):
         body = json.loads(body)
         return resp, body
 
-    def change_password(self, server_id, password):
-        """Changes the root password for the server."""
-        post_body = {
-            'changePassword': {
-                'adminPass': password,
-            }
-        }
+    def action(self, server_id, action_name, response_key, **kwargs):
+        post_body = json.dumps({action_name: kwargs})
+        resp, body = self.post('servers/%s/action' % str(server_id),
+                               post_body, self.headers)
+        if response_key is not None:
+            body = json.loads(body)[response_key]
+        return resp, body
 
-        post_body = json.dumps(post_body)
-        return self.post('servers/%s/action' % str(server_id),
-                         post_body, self.headers)
+    def change_password(self, server_id, adminPass):
+        """Changes the root password for the server."""
+        return self.action(server_id, 'changePassword', None,
+                           adminPass=adminPass)
 
     def reboot(self, server_id, reboot_type):
         """Reboots a server."""
-        post_body = {
-            'reboot': {
-                'type': reboot_type,
-            }
-        }
+        return self.action(server_id, 'reboot', None, type=reboot_type)
 
-        post_body = json.dumps(post_body)
-        return self.post('servers/%s/action' % str(server_id),
-                         post_body, self.headers)
-
-    def rebuild(self, server_id, image_ref, name=None, meta=None,
-                personality=None, adminPass=None, disk_config=None):
+    def rebuild(self, server_id, image_ref, **kwargs):
         """Rebuilds a server with a new image."""
-        post_body = {
-                'imageRef': image_ref,
-        }
+        kwargs['imageRef'] = image_ref
+        if 'disk_config' in kwargs:
+            kwargs['OS-DCF:diskConfig'] = kwargs['disk_config']
+            del kwargs['disk_config']
+        return self.action(server_id, 'rebuild', 'server', **kwargs)
 
-        if name is not None:
-            post_body['name'] = name
-
-        if adminPass is not None:
-            post_body['adminPass'] = adminPass
-
-        if meta is not None:
-            post_body['metadata'] = meta
-
-        if personality is not None:
-            post_body['personality'] = personality
-
-        if disk_config is not None:
-            post_body['OS-DCF:diskConfig'] = disk_config
-
-        post_body = json.dumps({'rebuild': post_body})
-        resp, body = self.post('servers/%s/action' % str(server_id),
-                               post_body, self.headers)
-        body = json.loads(body)
-        return resp, body['server']
-
-    def resize(self, server_id, flavor_ref, disk_config=None):
+    def resize(self, server_id, flavor_ref, **kwargs):
         """Changes the flavor of a server."""
-        post_body = {
-            'resize': {
-                'flavorRef': flavor_ref,
-            }
-        }
+        kwargs['flavorRef'] = flavor_ref
+        if 'disk_config' in kwargs:
+            kwargs['OS-DCF:diskConfig'] = kwargs['disk_config']
+            del kwargs['disk_config']
+        return self.action(server_id, 'resize', None, **kwargs)
 
-        if disk_config is not None:
-            post_body['resize']['OS-DCF:diskConfig'] = disk_config
-
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % str(server_id),
-                               post_body, self.headers)
-        return resp, body
-
-    def confirm_resize(self, server_id):
+    def confirm_resize(self, server_id, **kwargs):
         """Confirms the flavor change for a server."""
-        post_body = {
-            'confirmResize': None,
-        }
+        return self.action(server_id, 'confirmResize', None, **kwargs)
 
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % str(server_id),
-                               post_body, self.headers)
-        return resp, body
-
-    def revert_resize(self, server_id):
+    def revert_resize(self, server_id, **kwargs):
         """Reverts a server back to its original flavor."""
-        post_body = {
-            'revertResize': None,
-        }
+        return self.action(server_id, 'revertResize', None, **kwargs)
 
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % str(server_id),
-                               post_body, self.headers)
-        return resp, body
-
-    def create_image(self, server_id, image_name):
+    def create_image(self, server_id, name):
         """Creates an image of the given server."""
-        post_body = {
-            'createImage': {
-                'name': image_name,
-            }
-        }
-
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % str(server_id),
-                               post_body, self.headers)
-        return resp, body
+        return self.action(server_id, 'createImage', None, name=name)
 
     def list_server_metadata(self, server_id):
         resp, body = self.get("servers/%s/metadata" % str(server_id))
@@ -334,15 +285,11 @@ class ServersClientJSON(RestClient):
                                  (str(server_id), key))
         return resp, body
 
-    def stop(self, server_id):
-        post_body = json.dumps({'os-stop': None})
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
+    def stop(self, server_id, **kwargs):
+        return self.action(server_id, 'os-stop', None, **kwargs)
 
-    def start(self, server_id):
-        post_body = json.dumps({'os-start': None})
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
+    def start(self, server_id, **kwargs):
+        return self.action(server_id, 'os-start', None, **kwargs)
 
     def attach_volume(self, server_id, volume_id, device='/dev/vdz'):
         """Attaches a volume to a server instance."""
@@ -362,27 +309,13 @@ class ServersClientJSON(RestClient):
                                  (server_id, volume_id))
         return resp, body
 
-    def add_security_group(self, server_id, security_group_name):
+    def add_security_group(self, server_id, name):
         """Adds a security group to the server."""
-        post_body = {
-            'addSecurityGroup': {
-                'name': security_group_name
-            }
-        }
-        post_body = json.dumps(post_body)
-        return self.post('servers/%s/action' % server_id,
-                         post_body, self.headers)
+        return self.action(server_id, 'addSecurityGroup', None, name=name)
 
-    def remove_security_group(self, server_id, security_group_name):
+    def remove_security_group(self, server_id, name):
         """Removes a security group from the server."""
-        post_body = {
-            'removeSecurityGroup': {
-                'name': security_group_name
-            }
-        }
-        post_body = json.dumps(post_body)
-        return self.post('servers/%s/action' % server_id,
-                         post_body, self.headers)
+        return self.action(server_id, 'removeSecurityGroup', None, name=name)
 
     def live_migrate_server(self, server_id, dest_host, use_block_migration):
         """This should be called with administrator privileges ."""
@@ -403,90 +336,73 @@ class ServersClientJSON(RestClient):
 
         url = self.base_url + '/servers?all_tenants=1'
         resp = self.requests.get(url)
-        resp, body = self.post('servers', post_body, self.headers)
+        resp, body = self.get('servers', self.headers)
 
         body = json.loads(body)
         return resp, body['servers']
 
-    def migrate_server(self, server_id):
+    def migrate_server(self, server_id, **kwargs):
         """Migrates a server to a new host."""
-        post_body = {'migrate': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
-        return resp, body
+        return self.action(server_id, 'migrate', None, **kwargs)
 
-    def confirm_migration(self, server_id):
-        """Confirms the migration of a server."""
-        post_body = {'confirmResize': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
-        return resp, body
-
-    def lock_server(self, server_id):
+    def lock_server(self, server_id, **kwargs):
         """Locks the given server."""
-        post_body = {'lock': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
+        return self.action(server_id, 'lock', None, **kwargs)
 
-    def unlock_server(self, server_id):
+    def unlock_server(self, server_id, **kwargs):
         """UNlocks the given server."""
-        post_body = {'unlock': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
+        return self.action(server_id, 'unlock', None, **kwargs)
 
-    def start_server(self, server_id):
-        """Starts the given server."""
-        post_body = {'os-start': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
-
-    def stop_server(self, server_id):
-        """Stops the given server."""
-        post_body = {'os-stop': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
-
-    def suspend_server(self, server_id):
+    def suspend_server(self, server_id, **kwargs):
         """Suspends the provded server."""
-        post_body = {'suspend': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
+        return self.action(server_id, 'suspend', None, **kwargs)
 
-    def resume_server(self, server_id):
+    def resume_server(self, server_id, **kwargs):
         """Un-suspends the provded server."""
-        post_body = {'resume': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
+        return self.action(server_id, 'resume', None, **kwargs)
 
-    def pause_server(self, server_id):
+    def pause_server(self, server_id, **kwargs):
         """Pauses the provded server."""
-        post_body = {'pause': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
+        return self.action(server_id, 'pause', None, **kwargs)
 
-    def unpause_server(self, server_id):
+    def unpause_server(self, server_id, **kwargs):
         """Un-pauses the provded server."""
-        post_body = {'unpause': 'null'}
-        post_body = json.dumps(post_body)
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
+        return self.action(server_id, 'unpause', None, **kwargs)
 
-    def reset_state(self, server_id, new_state='error'):
+    def reset_state(self, server_id, state='error'):
         """Resets the state of a server to active/error."""
-        post_body = {
-            'os-resetState': {
-                'state': new_state
-            }
-        }
-        resp, body = self.post('servers/%s/action' % server_id,
-                               post_body, self.headers)
-        return resp, body
+        return self.action(server_id, 'os-resetState', None, state=state)
+
+    def get_console_output(self, server_id, length):
+        return self.action(server_id, 'os-getConsoleOutput', 'output',
+                           length=length)
+
+    def list_virtual_interfaces(self, server_id):
+        """
+        List the virtual interfaces used in an instance.
+        """
+        resp, body = self.get('/'.join(['servers', server_id,
+                              'os-virtual-interfaces']))
+        return resp, json.loads(body)
+
+    def rescue_server(self, server_id, adminPass=None):
+        """Rescue the provided server."""
+        return self.action(server_id, 'rescue', None, adminPass=adminPass)
+
+    def unrescue_server(self, server_id):
+        """Unrescue the provided server."""
+        return self.action(server_id, 'unrescue', None)
+
+    def list_instance_actions(self, server_id):
+        """List the provided server action."""
+        resp, body = self.get("servers/%s/os-instance-actions" %
+                              str(server_id))
+        body = json.loads(body)
+        return resp, body['instanceActions']
+
+    def get_instance_action(self, server_id, request_id):
+        """Returns the action details of the provided server."""
+        resp, body = self.get("servers/%s/os-instance-actions/%s" %
+                              (str(server_id), str(request_id)))
+        body = json.loads(body)
+        return resp, body['instanceAction']

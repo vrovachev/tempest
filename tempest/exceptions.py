@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import testtools
+
 
 class TempestException(Exception):
     """
@@ -27,6 +29,7 @@ class TempestException(Exception):
     message = "An unknown exception occurred"
 
     def __init__(self, *args, **kwargs):
+        super(TempestException, self).__init__()
         try:
             self._error_string = self.message % kwargs
         except Exception:
@@ -49,11 +52,16 @@ class InvalidConfiguration(TempestException):
     message = "Invalid Configuration"
 
 
-class NotFound(TempestException):
+class RestClientException(TempestException,
+                          testtools.TestCase.failureException):
+    pass
+
+
+class NotFound(RestClientException):
     message = "Object not found"
 
 
-class Unauthorized(TempestException):
+class Unauthorized(RestClientException):
     message = 'Unauthorized'
 
 
@@ -78,11 +86,24 @@ class VolumeBuildErrorException(TempestException):
     message = "Volume %(volume_id)s failed to build and is in ERROR status"
 
 
-class BadRequest(TempestException):
+class SnapshotBuildErrorException(TempestException):
+    message = "Snapshot %(snapshot_id)s failed to build and is in ERROR status"
+
+
+class StackBuildErrorException(TempestException):
+    message = ("Stack %(stack_identifier)s is in %(stack_status)s status "
+               "due to '%(stack_status_reason)s'")
+
+
+class BadRequest(RestClientException):
     message = "Bad request"
 
 
-class AuthenticationFailure(TempestException):
+class UnprocessableEntity(RestClientException):
+    message = "Unprocessable entity"
+
+
+class AuthenticationFailure(RestClientException):
     message = ("Authentication with user %(user)s and password "
                "%(password)s failed")
 
@@ -104,11 +125,15 @@ class ComputeFault(TempestException):
     message = "Got compute fault"
 
 
+class ImageFault(TempestException):
+    message = "Got image fault"
+
+
 class IdentityError(TempestException):
     message = "Got identity error"
 
 
-class Duplicate(TempestException):
+class Duplicate(RestClientException):
     message = "An object with that identifier already exists"
 
 
@@ -135,7 +160,7 @@ class TearDownException(TempestException):
     message = "%(num)d cleanUp operation failed"
 
 
-class RFCViolation(TempestException):
+class RFCViolation(RestClientException):
     message = "RFC Violation"
 
 

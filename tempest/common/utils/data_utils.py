@@ -24,7 +24,11 @@ from tempest import exceptions
 
 
 def rand_name(name='test'):
-    return name + str(random.randint(1, 999999))
+    return name + str(random.randint(1, 0x7fffffff))
+
+
+def rand_int_id(start=0, end=0x7fffffff):
+    return random.randint(start, end)
 
 
 def build_url(host, port, api_version=None, path=None,
@@ -60,7 +64,7 @@ def build_url(host, port, api_version=None, path=None,
 
 def parse_image_id(image_ref):
     """Return the image id from a given image ref."""
-    return  image_ref.rsplit('/')[-1]
+    return image_ref.rsplit('/')[-1]
 
 
 def arbitrary_string(size=4, base_text=None):

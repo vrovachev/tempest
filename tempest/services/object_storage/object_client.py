@@ -15,9 +15,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import hashlib
+import hmac
 import httplib2
-import json
-import re
+import urlparse
+
 from tempest.common.rest_client import RestClient
 from tempest import exceptions
 
@@ -32,13 +34,16 @@ class ObjectClient(RestClient):
     def create_object(self, container, object_name, data):
         """Create storage object."""
 
+        headers = dict(self.headers)
+        if not data:
+            headers['content-length'] = '0'
         url = "%s/%s" % (str(container), str(object_name))
-        resp, body = self.put(url, data, self.headers)
+        resp, body = self.put(url, data, headers)
         return resp, body
 
     def update_object(self, container, object_name, data):
         """Upload data to replace current storage object."""
-        return create_object(container, object_name, data)
+        return self.create_object(container, object_name, data)
 
     def delete_object(self, container, object_name):
         """Delete storage object."""
@@ -120,6 +125,29 @@ class ObjectClient(RestClient):
         resp, body = self.copy(url, headers=headers)
         return resp, body
 
+    def get_object_using_temp_url(self, container, object_name, expires, key):
+        """Retrieve object's data using temp URL."""
+
+        self._set_auth()
+        method = 'GET'
+        path = "%s/%s/%s" % (urlparse.urlparse(self.base_url).path, container,
+                             object_name)
+        hmac_body = '%s\n%s\n%s' % (method, expires, path)
+        sig = hmac.new(key, hmac_body, hashlib.sha1).hexdigest()
+
+        url = "%s/%s?temp_url_sig=%s&temp_url_expires=%s" % (container,
+                                                             object_name,
+                                                             sig, expires)
+
+        resp, body = self.get(url)
+        return resp, body
+
+    def create_object_segments(self, container, object_name, segment, data):
+        """Creates object segments."""
+        url = "{0}/{1}/{2}".format(container, object_name, segment)
+        resp, body = self.put(url, data, self.headers)
+        return resp, body
+
 
 class ObjectClientCustomizedHeader(RestClient):
 
@@ -131,20 +159,21 @@ class ObjectClientCustomizedHeader(RestClient):
         self.service = self.config.object_storage.catalog_type
         self.format = 'json'
 
-    def request(self, method, url, headers=None, body=None, wait=None):
+    def request(self, method, url, headers=None, body=None):
         """A simple HTTP request interface."""
-        self.http_obj = httplib2.Http()
+        dscv = self.config.identity.disable_ssl_certificate_validation
+        self.http_obj = httplib2.Http(disable_ssl_certificate_validation=dscv)
         if headers is None:
             headers = {}
         if self.base_url is None:
             self._set_auth()
 
         req_url = "%s/%s" % (self.base_url, url)
+        self._log_request(method, req_url, headers, body)
         resp, resp_body = self.http_obj.request(req_url, method,
                                                 headers=headers, body=body)
-
+        self._log_response(resp, resp_body)
         if resp.status == 401 or resp.status == 403:
-            self._log(req_url, body, resp, resp_body)
             raise exceptions.Unauthorized()
 
         return resp, resp_body
@@ -168,13 +197,20 @@ class ObjectClientCustomizedHeader(RestClient):
             for key in metadata:
                 headers[str(key)] = metadata[key]
 
+        if not data:
+            headers['content-length'] = '0'
         url = "%s/%s" % (str(container), str(object_name))
         resp, body = self.put(url, data, headers=headers)
         return resp, body
 
-    def delete_object(self, container, object_name):
+    def delete_object(self, container, object_name, metadata=None):
         """Delete storage object."""
 
+        headers = {}
+        if metadata:
+            for key in metadata:
+                headers[str(key)] = metadata[key]
+
         url = "%s/%s" % (str(container), str(object_name))
-        resp, body = self.delete(url)
+        resp, body = self.delete(url, headers=headers)
         return resp, body

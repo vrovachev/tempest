@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
-# Copyright 2012 IBM
+# Copyright 2012 IBM Corp.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -37,7 +37,7 @@ class VolumesClientXML(RestClientXML):
     def __init__(self, config, username, password, auth_url, tenant_name=None):
         super(VolumesClientXML, self).__init__(config, username, password,
                                                auth_url, tenant_name)
-        self.service = self.config.compute.catalog_type
+        self.service = self.config.volume.catalog_type
         self.build_interval = self.config.compute.build_interval
         self.build_timeout = self.config.compute.build_timeout
 
@@ -50,10 +50,11 @@ class VolumesClientXML(RestClientXML):
                 ns, tag = tag.split("}", 1)
             if tag == 'metadata':
                 vol['metadata'] = dict((meta.get('key'),
-                                        meta.text) for meta in list(child))
+                                       meta.text) for meta in
+                                       child.getchildren())
             else:
                 vol[tag] = xml_to_json(child)
-            return vol
+        return vol
 
     def list_volumes(self, params=None):
         """List all the volumes created."""
@@ -83,32 +84,43 @@ class VolumesClientXML(RestClientXML):
             volumes += [self._parse_volume(vol) for vol in list(body)]
         return resp, volumes
 
-    def get_volume(self, volume_id, wait=None):
+    def get_volume(self, volume_id):
         """Returns the details of a single volume."""
         url = "volumes/%s" % str(volume_id)
-        resp, body = self.get(url, self.headers, wait=wait)
+        resp, body = self.get(url, self.headers)
         body = etree.fromstring(body)
         return resp, self._parse_volume(body)
 
-    def create_volume(self, size, display_name=None, metadata=None):
+    def create_volume(self, size, **kwargs):
         """Creates a new Volume.
 
         :param size: Size of volume in GB. (Required)
         :param display_name: Optional Volume Name.
         :param metadata: An optional dictionary of values for metadata.
+        :param volume_type: Optional Name of volume_type for the volume
+        :param snapshot_id: When specified the volume is created from
+                            this snapshot
+        :param imageRef: When specified the volume is created from this
+                         image
         """
+        #NOTE(afazekas): it should use a volume namespace
         volume = Element("volume", xmlns=XMLNS_11, size=size)
-        if display_name:
-            volume.add_attr('display_name', display_name)
 
-        if metadata:
+        if 'metadata' in kwargs:
             _metadata = Element('metadata')
             volume.append(_metadata)
-            for key, value in metadata.items():
+            for key, value in kwargs['metadata'].items():
                 meta = Element('meta')
                 meta.add_attr('key', key)
                 meta.append(Text(value))
                 _metadata.append(meta)
+            attr_to_add = kwargs.copy()
+            del attr_to_add['metadata']
+        else:
+            attr_to_add = kwargs
+
+        for key, value in attr_to_add.items():
+            volume.add_attr(key, value)
 
         resp, body = self.post('volumes', str(Document(volume)),
                                self.headers)
@@ -122,7 +134,6 @@ class VolumesClientXML(RestClientXML):
     def wait_for_volume_status(self, volume_id, status):
         """Waits for a Volume to reach a given status."""
         resp, body = self.get_volume(volume_id)
-        volume_name = body['displayName']
         volume_status = body['status']
         start = int(time.time())
 
@@ -135,13 +146,14 @@ class VolumesClientXML(RestClientXML):
 
             if int(time.time()) - start >= self.build_timeout:
                 message = 'Volume %s failed to reach %s status within '\
-                          'the required time (%s s).' % (volume_name, status,
+                          'the required time (%s s).' % (volume_id,
+                                                         status,
                                                          self.build_timeout)
                 raise exceptions.TimeoutException(message)
 
     def is_resource_deleted(self, id):
         try:
-            self.get_volume(id, wait=True)
+            self.get_volume(id)
         except exceptions.NotFound:
             return True
         return False

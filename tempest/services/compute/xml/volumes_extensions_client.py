@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
-# Copyright 2012 IBM
+# Copyright 2012 IBM Corp.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -81,10 +81,10 @@ class VolumesExtensionsClientXML(RestClientXML):
             volumes += [self._parse_volume(vol) for vol in list(body)]
         return resp, volumes
 
-    def get_volume(self, volume_id, wait=None):
+    def get_volume(self, volume_id):
         """Returns the details of a single volume."""
         url = "os-volumes/%s" % str(volume_id)
-        resp, body = self.get(url, self.headers, wait=wait)
+        resp, body = self.get(url, self.headers)
         body = etree.fromstring(body)
         return resp, self._parse_volume(body)
 
@@ -141,7 +141,7 @@ class VolumesExtensionsClientXML(RestClientXML):
 
     def is_resource_deleted(self, id):
         try:
-            self.get_volume(id, wait=True)
+            self.get_volume(id)
         except exceptions.NotFound:
             return True
         return False

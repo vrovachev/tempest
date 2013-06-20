@@ -51,20 +51,23 @@ class FlavorsClientJSON(RestClient):
         body = json.loads(body)
         return resp, body['flavor']
 
-    def create_flavor(self, name, ram, vcpus, disk, ephemeral, flavor_id,
-                      swap, rxtx):
+    def create_flavor(self, name, ram, vcpus, disk, flavor_id, **kwargs):
         """Creates a new flavor or instance type."""
         post_body = {
             'name': name,
             'ram': ram,
             'vcpus': vcpus,
             'disk': disk,
-            'OS-FLV-EXT-DATA:ephemeral': ephemeral,
             'id': flavor_id,
-            'swap': swap,
-            'rxtx_factor': rxtx,
         }
-
+        if kwargs.get('ephemeral'):
+            post_body['OS-FLV-EXT-DATA:ephemeral'] = kwargs.get('ephemeral')
+        if kwargs.get('swap'):
+            post_body['swap'] = kwargs.get('swap')
+        if kwargs.get('rxtx'):
+            post_body['rxtx_factor'] = kwargs.get('rxtx')
+        if kwargs.get('is_public'):
+            post_body['os-flavor-access:is_public'] = kwargs.get('is_public')
         post_body = json.dumps({'flavor': post_body})
         resp, body = self.post('flavors', post_body, self.headers)
 
@@ -74,3 +77,58 @@ class FlavorsClientJSON(RestClient):
     def delete_flavor(self, flavor_id):
         """Deletes the given flavor."""
         return self.delete("flavors/%s" % str(flavor_id))
+
+    def is_resource_deleted(self, id):
+        #Did not use get_flavor_details(id) for verification as it gives
+        #200 ok even for deleted id. LP #981263
+        #we can remove the loop here and use get by ID when bug gets sortedout
+        resp, flavors = self.list_flavors_with_detail()
+        for flavor in flavors:
+            if flavor['id'] == id:
+                return False
+        return True
+
+    def set_flavor_extra_spec(self, flavor_id, specs):
+        """Sets extra Specs to the mentioned flavor."""
+        post_body = json.dumps({'extra_specs': specs})
+        resp, body = self.post('flavors/%s/os-extra_specs' % flavor_id,
+                               post_body, self.headers)
+        body = json.loads(body)
+        return resp, body['extra_specs']
+
+    def get_flavor_extra_spec(self, flavor_id):
+        """Gets extra Specs details of the mentioned flavor."""
+        resp, body = self.get('flavors/%s/os-extra_specs' % flavor_id)
+        body = json.loads(body)
+        return resp, body['extra_specs']
+
+    def unset_flavor_extra_spec(self, flavor_id, key):
+        """Unsets extra Specs from the mentioned flavor."""
+        return self.delete('flavors/%s/os-extra_specs/%s' % (str(flavor_id),
+                           key))
+
+    def add_flavor_access(self, flavor_id, tenant_id):
+        """Add flavor access for the specified tenant."""
+        post_body = {
+            'addTenantAccess': {
+                'tenant': tenant_id
+            }
+        }
+        post_body = json.dumps(post_body)
+        resp, body = self.post('flavors/%s/action' % flavor_id,
+                               post_body, self.headers)
+        body = json.loads(body)
+        return resp, body['flavor_access']
+
+    def remove_flavor_access(self, flavor_id, tenant_id):
+        """Remove flavor access from the specified tenant."""
+        post_body = {
+            'removeTenantAccess': {
+                'tenant': tenant_id
+            }
+        }
+        post_body = json.dumps(post_body)
+        resp, body = self.post('flavors/%s/action' % flavor_id,
+                               post_body, self.headers)
+        body = json.loads(body)
+        return resp, body['flavor_access']

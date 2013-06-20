@@ -56,10 +56,10 @@ class VolumesClientJSON(RestClient):
         body = json.loads(body)
         return resp, body['volumes']
 
-    def get_volume(self, volume_id, wait=None):
+    def get_volume(self, volume_id):
         """Returns the details of a single volume."""
         url = "volumes/%s" % str(volume_id)
-        resp, body = self.get(url, wait=wait)
+        resp, body = self.get(url)
         body = json.loads(body)
         return resp, body['volume']
 
@@ -71,14 +71,11 @@ class VolumesClientJSON(RestClient):
         display_name: Optional Volume Name.
         metadata: A dictionary of values to be used as metadata.
         volume_type: Optional Name of volume_type for the volume
+        snapshot_id: When specified the volume is created from this snapshot
+        imageRef: When specified the volume is created from this image
         """
-        post_body = {
-            'size': size,
-            'display_name': kwargs.get('display_name'),
-            'metadata': kwargs.get('metadata'),
-            'volume_type': kwargs.get('volume_type')
-        }
-
+        post_body = {'size': size}
+        post_body.update(kwargs)
         post_body = json.dumps({'volume': post_body})
         resp, body = self.post('volumes', post_body, self.headers)
         body = json.loads(body)
@@ -129,7 +126,7 @@ class VolumesClientJSON(RestClient):
 
     def is_resource_deleted(self, id):
         try:
-            self.get_volume(id, wait=True)
+            self.get_volume(id)
         except exceptions.NotFound:
             return True
         return False

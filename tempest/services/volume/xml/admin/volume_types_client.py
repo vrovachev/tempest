@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
-# Copyright 2012 IBM
+# Copyright 2012 IBM Corp.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -149,11 +149,16 @@ class VolumeTypesClientXML(RestClientXML):
         url = "types/%s/extra_specs" % str(vol_type_id)
         extra_specs = Element("extra_specs", xmlns=XMLNS_11)
         if extra_spec:
-            for key, value in extra_spec.items():
-                spec = Element('extra_spec')
-                spec.add_attr('key', key)
-                spec.append(Text(value))
-                extra_specs.append(spec)
+            if isinstance(extra_spec, list):
+                extra_specs.append(extra_spec)
+            else:
+                for key, value in extra_spec.items():
+                    spec = Element('extra_spec')
+                    spec.add_attr('key', key)
+                    spec.append(Text(value))
+                    extra_specs.append(spec)
+        else:
+            extra_specs = None
 
         resp, body = self.post(url, str(Document(extra_specs)),
                                self.headers)
@@ -177,11 +182,14 @@ class VolumeTypesClientXML(RestClientXML):
         url = "types/%s/extra_specs/%s" % (str(vol_type_id),
                                            str(extra_spec_name))
         extra_specs = Element("extra_specs", xmlns=XMLNS_11)
-        for key, value in extra_spec.items():
-            spec = Element('extra_spec')
-            spec.add_attr('key', key)
-            spec.append(Text(value))
-            extra_specs.append(spec)
+
+        if extra_spec is not None:
+            for key, value in extra_spec.items():
+                spec = Element('extra_spec')
+                spec.add_attr('key', key)
+                spec.append(Text(value))
+                extra_specs.append(spec)
+
         resp, body = self.put(url, str(Document(extra_specs)),
                               self.headers)
         body = xml_to_json(etree.fromstring(body))

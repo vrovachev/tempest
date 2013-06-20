@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
-# Copyright 2012 IBM
+# Copyright 2012 IBM Corp.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -19,18 +19,20 @@ from lxml import etree
 import urllib
 
 from tempest.common.rest_client import RestClientXML
+from tempest import exceptions
 from tempest.services.compute.xml.common import Document
 from tempest.services.compute.xml.common import Element
 from tempest.services.compute.xml.common import Text
 from tempest.services.compute.xml.common import xml_to_json
+from tempest.services.compute.xml.common import XMLNS_11
 
 
 class SecurityGroupsClientXML(RestClientXML):
 
     def __init__(self, config, username, password, auth_url, tenant_name=None):
         super(SecurityGroupsClientXML, self).__init__(
-                                        config, username, password,
-                                        auth_url, tenant_name)
+            config, username, password,
+            auth_url, tenant_name)
         self.service = self.config.compute.catalog_type
 
     def _parse_array(self, node):
@@ -128,3 +130,16 @@ class SecurityGroupsClientXML(RestClientXML):
         """Deletes the provided Security Group rule."""
         return self.delete('os-security-group-rules/%s' %
                            str(group_rule_id), self.headers)
+
+    def list_security_group_rules(self, security_group_id):
+        """List all rules for a security group."""
+        url = "os-security-groups"
+        resp, body = self.get(url, self.headers)
+        body = etree.fromstring(body)
+        secgroups = body.getchildren()
+        for secgroup in secgroups:
+            if secgroup.get('id') == security_group_id:
+                node = secgroup.find('{%s}rules' % XMLNS_11)
+                rules = [xml_to_json(x) for x in node.getchildren()]
+                return resp, rules
+        raise exceptions.NotFound('No such Security Group')
