@@ -24,12 +24,12 @@ from tempest import exceptions
 from tempest.test import attr
 
 
-class ServersNegativeTest(base.BaseComputeTest):
+class ServersNegativeTestJSON(base.BaseComputeTest):
     _interface = 'json'
 
     @classmethod
     def setUpClass(cls):
-        super(ServersNegativeTest, cls).setUpClass()
+        super(ServersNegativeTestJSON, cls).setUpClass()
         cls.client = cls.servers_client
         cls.img_client = cls.images_client
         cls.alt_os = clients.AltManager()
@@ -236,11 +236,7 @@ class ServersNegativeTest(base.BaseComputeTest):
         # Create a server with a nonexistent security group
 
         security_groups = [{'name': 'does_not_exist'}]
-        if self.config.network.quantum_available:
-            expected_exception = exceptions.NotFound
-        else:
-            expected_exception = exceptions.BadRequest
-        self.assertRaises(expected_exception,
+        self.assertRaises(exceptions.BadRequest,
                           self.create_server,
                           security_groups=security_groups)
 
@@ -252,5 +248,5 @@ class ServersNegativeTest(base.BaseComputeTest):
                           '999erra43')
 
 
-class ServersNegativeTestXML(ServersNegativeTest):
+class ServersNegativeTestXML(ServersNegativeTestJSON):
     _interface = 'xml'

@@ -16,6 +16,7 @@
 #    under the License.
 
 import logging
+import os
 import shlex
 import subprocess
 
@@ -99,7 +100,7 @@ class ClientTestBase(tempest.test.BaseTestCase):
     def cmd(self, cmd, action, flags='', params='', fail_ok=False,
             merge_stderr=False):
         """Executes specified command for the given action."""
-        cmd = ' '.join([CONF.cli.cli_dir + cmd,
+        cmd = ' '.join([os.path.join(CONF.cli.cli_dir, cmd),
                         flags, action, params])
         LOG.info("running: '%s'" % cmd)
         cmd = shlex.split(cmd)
@@ -109,7 +110,7 @@ class ClientTestBase(tempest.test.BaseTestCase):
             else:
                 with open('/dev/null', 'w') as devnull:
                     result = self.check_output(cmd, stderr=devnull)
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             LOG.error("command output:\n%s" % e.output)
             raise
         return result

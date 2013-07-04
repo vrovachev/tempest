@@ -15,8 +15,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import print_function
+
 import os
 import sys
+
 
 from oslo.config import cfg
 
@@ -40,10 +43,6 @@ IdentityGroup = [
                help="Full URI of the OpenStack Identity API (Keystone), v2"),
     cfg.StrOpt('uri_v3',
                help='Full URI of the OpenStack Identity API (Keystone), v3'),
-    cfg.StrOpt('strategy',
-               default='keystone',
-               help="Which auth method does the environment use? "
-                    "(basic|keystone)"),
     cfg.StrOpt('region',
                default='RegionOne',
                help="The identity region name to use."),
@@ -185,10 +184,12 @@ ComputeGroup = [
                default=None,
                help="Path to a private key file for SSH access to remote "
                     "hosts"),
-    cfg.BoolOpt('disk_config_enabled_override',
+    cfg.BoolOpt('disk_config_enabled',
                 default=True,
-                help="If false, skip config tests regardless of the "
-                     "extension status"),
+                help="If false, skip disk config tests"),
+    cfg.BoolOpt('flavor_extra_enabled',
+                default=True,
+                help="If false, skip flavor extra data test"),
 ]
 
 
@@ -332,6 +333,12 @@ VolumeGroup = [
     cfg.StrOpt('backend2_name',
                default='BACKEND_2',
                help="Name of the backend2 (must be declared in cinder.conf)"),
+    cfg.StrOpt('storage_protocol',
+               default='iSCSI',
+               help='Backend protocol to target when creating volume types'),
+    cfg.StrOpt('vendor_name',
+               default='Open Source',
+               help='Backend vendor to target when creating volume types'),
 ]
 
 
@@ -555,7 +562,7 @@ class TempestConfig:
 
         if not os.path.exists(path):
             msg = "Config file %(path)s not found" % locals()
-            print >> sys.stderr, RuntimeError(msg)
+            print(RuntimeError(msg), file=sys.stderr)
         else:
             config_files.append(path)
 

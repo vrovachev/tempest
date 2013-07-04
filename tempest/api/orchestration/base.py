@@ -33,11 +33,15 @@ class BaseOrchestrationTest(tempest.test.BaseTestCase):
         cls.orchestration_cfg = os.config.orchestration
         if not cls.orchestration_cfg.heat_available:
             raise cls.skipException("Heat support is required")
+        cls.build_timeout = cls.orchestration_cfg.build_timeout
+        cls.build_interval = cls.orchestration_cfg.build_interval
 
         cls.os = os
         cls.orchestration_client = os.orchestration_client
+        cls.servers_client = os.servers_client
         cls.keypairs_client = os.keypairs_client
         cls.stacks = []
+        cls.keypairs = []
 
     @classmethod
     def _get_identity_admin_client(cls):
@@ -58,15 +62,15 @@ class BaseOrchestrationTest(tempest.test.BaseTestCase):
             cls.config.identity.uri
         )
 
-    def create_stack(self, stack_name, template_data, parameters={}):
-        resp, body = self.client.create_stack(
+    @classmethod
+    def create_stack(cls, stack_name, template_data, parameters={}):
+        resp, body = cls.client.create_stack(
             stack_name,
             template=template_data,
             parameters=parameters)
-        self.assertEqual('201', resp['status'])
         stack_id = resp['location'].split('/')[-1]
         stack_identifier = '%s/%s' % (stack_name, stack_id)
-        self.stacks.append(stack_identifier)
+        cls.stacks.append(stack_identifier)
         return stack_identifier
 
     @classmethod
@@ -84,15 +88,25 @@ class BaseOrchestrationTest(tempest.test.BaseTestCase):
             except Exception:
                 pass
 
-    def _create_keypair(self, namestart='keypair-heat-'):
+    @classmethod
+    def _create_keypair(cls, namestart='keypair-heat-'):
         kp_name = rand_name(namestart)
-        resp, body = self.keypairs_client.create_keypair(kp_name)
-        self.assertEqual(body['name'], kp_name)
+        resp, body = cls.keypairs_client.create_keypair(kp_name)
+        cls.keypairs.append(kp_name)
         return body
+
+    @classmethod
+    def clear_keypairs(cls):
+        for kp_name in cls.keypairs:
+            try:
+                cls.keypairs_client.delete_keypair(kp_name)
+            except Exception:
+                pass
 
     @classmethod
     def tearDownClass(cls):
         cls.clear_stacks()
+        cls.clear_keypairs()
 
     def wait_for(self, condition):
         """Repeatedly calls condition() until a timeout."""
@@ -108,3 +122,9 @@ class BaseOrchestrationTest(tempest.test.BaseTestCase):
                 condition()
                 return
             time.sleep(self.build_interval)
+
+    @staticmethod
+    def stack_output(stack, output_key):
+        """Return a stack output value for a give key."""
+        return next((o['output_value'] for o in stack['outputs']
+                    if o['output_key'] == output_key), None)
