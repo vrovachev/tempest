@@ -693,7 +693,7 @@ class PrepareTempest():
             'TENANT_NETS_REACHABLE': 'false',
             'PUBLIC_NETWORK_ID': public_network_id,
             'PUBLIC_ROUTER_ID': public_router_id,
-            'QUANTUM': 'true',
+            'QUANTUM': 'false',
             'VOLUME_CATALOG_TYPE': 'volume',
             'VOLUME_BUILD_INTERVAL': '15',
             'VOLUME_BUILD_TIMEOUT': '400',
