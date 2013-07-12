@@ -548,8 +548,8 @@ class PrepareTempest():
         retry(10, keystone.users.create, name='tempest2', password='secret',
               email='tempest2@example.com', tenant_id=tenant2.id)
         image_ref, image_ref_alt = self._tempest_add_images()
-        net_id, router_id = self._tempest_get_netid_routerid()
-        return image_ref, image_ref_alt, net_id, router_id
+        #net_id, router_id = self._tempest_get_netid_routerid()
+        return image_ref, image_ref_alt, "net_id", "router_id"
 
     def _upload(self, glance, name, path):
         image = glance.images.create(name=name, is_public=True,
@@ -559,11 +559,11 @@ class PrepareTempest():
         return image.id
 
     def _tempest_add_images(self):
-        if not os.path.isfile(CIRROS_IMAGE):
+        if not os.path.isfile('cirros.img'):
             subprocess.check_call(['wget', CIRROS_IMAGE, '-O', 'cirros.img'])
         glance = self.get_glance()
-        return self._upload(glance, 'cirros.img', CIRROS_IMAGE), self._upload(
-            glance, 'cirros.img', CIRROS_IMAGE)
+        return self._upload(glance, 'cirros.img', 'cirros.img'), self._upload(
+            glance, 'cirros.img', 'cirros.img')
 
     def _tempest_get_netid_routerid(self):
         networking = self.get_quantum()
@@ -642,8 +642,7 @@ class PrepareTempest():
             public_network_id, public_router_id,
             path_to_private_key,
             compute_db_uri='mysql://nova:secret@localhost/nova'):
-        sample = load(template)
-        config = sample % {
+        config = template % {
             'IDENTITY_CATALOG_TYPE': 'identity',
             'IDENTITY_DISABLE_SSL_CHECK': 'true',
             'IDENTITY_USE_SSL': 'false',
@@ -698,6 +697,20 @@ class PrepareTempest():
             'VOLUME_CATALOG_TYPE': 'volume',
             'VOLUME_BUILD_INTERVAL': '15',
             'VOLUME_BUILD_TIMEOUT': '400',
+            'IDENTITY_USE_SSL': 'false',
+            'IDENTITY_HOST': self.public_ip,
+            'IDENTITY_PORT': '5000',
+            'IDENTITY_API_VERSION': 'v2.0',
+            'IDENTITY_PATH': 'tokens',
+            'COMPUTE_LOG_LEVEL': 'DEBUG',
+            'IMAGE_HOST': self.public_ip,
+            'IMAGE_PORT': '9292',
+            'IMAGE_USERNAME': 'tempest1',
+            'IMAGE_PASSWORD': 'secret',
+            'IMAGE_TENANT_NAME': 'tenant1',
+            'IDENTITY_ADMIN_USERNAME': self.username,
+            'IDENTITY_ADMIN_PASSWORD': self.password,
+            'IDENTITY_ADMIN_TENANT_NAME': self.tenant,
         }
 
         return config
@@ -754,4 +767,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
