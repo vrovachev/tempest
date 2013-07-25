@@ -124,5 +124,7 @@ class LiveBlockMigrationTest(base.BaseComputeAdminTest):
     def tearDownClass(cls):
         for server_id in cls.created_server_ids:
             cls.servers_client.delete_server(server_id)
+        for server_id in cls.created_server_ids:
+            cls.servers_client.wait_for_server_termination(server_id)
 
         super(LiveBlockMigrationTest, cls).tearDownClass()

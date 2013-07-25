@@ -54,6 +54,7 @@ class QuotasAdminTestJSON(base.BaseComputeAdminTest):
         for server in cls.servers:
             try:
                 cls.servers_client.delete_server(server['id'])
+                cls.servers_client.wait_for_server_termination(server['id'])
             except exceptions.NotFound:
                 continue
         super(QuotasAdminTestJSON, cls).tearDownClass()

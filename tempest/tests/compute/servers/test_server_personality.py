@@ -49,19 +49,24 @@ class ServerPersonalityTestJSON(base.BaseComputeTest):
     def test_can_create_server_with_max_number_personality_files(self):
         # Server should be created successfully if maximum allowed number of
         # files is injected into the server during creation.
-        file_contents = 'This is a test file.'
-        max_file_limit = \
-            self.user_client.get_specific_absolute_limit("maxPersonality")
-        person = []
-        for i in range(0, int(max_file_limit)):
-            path = 'etc/test' + str(i) + '.txt'
-            person.append({
-                'path': path,
-                'contents': base64.b64encode(file_contents),
-            })
-        resp, server = self.create_server(personality=person)
-        self.addCleanup(self.client.delete_server, server['id'])
-        self.assertEqual('202', resp['status'])
+        server = None
+        try:
+            file_contents = 'This is a test file.'
+            max_file_limit = \
+                self.user_client.get_specific_absolute_limit("maxPersonality")
+            person = []
+            for i in range(0, int(max_file_limit)):
+                path = 'etc/test' + str(i) + '.txt'
+                person.append({
+                    'path': path,
+                    'contents': base64.b64encode(file_contents),
+                })
+            resp, server = self.create_server(personality=person)
+            self.assertEqual('202', resp['status'])
+        finally:
+            if server:
+                self.client.delete_server(server['id'])
+                self.client.wait_for_server_termination(server['id'])
 
 
 class ServerPersonalityTestXML(ServerPersonalityTestJSON):

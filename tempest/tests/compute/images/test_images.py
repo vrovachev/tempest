@@ -95,7 +95,7 @@ class ImagesTestJSON(base.BaseComputeTest):
         # Return an error when creating image of server that is terminating
         resp, server = self.create_server(wait_until='ACTIVE')
         self.servers_client.delete_server(server['id'])
-
+        self.servers_client.wait_for_server_termination(server['id'])
         snapshot_name = rand_name('test-snap-')
         self.assertRaises(exceptions.Duplicate, self.client.create_image,
                           server['id'], snapshot_name)

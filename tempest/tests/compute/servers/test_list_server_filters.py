@@ -75,9 +75,10 @@ class ListServerFiltersTestJSON(base.BaseComputeTest):
 
     @classmethod
     def tearDownClass(cls):
-        cls.client.delete_server(cls.s1['id'])
-        cls.client.delete_server(cls.s2['id'])
-        cls.client.delete_server(cls.s3['id'])
+        for server_id in (cls.s1['id'], cls.s2['id'], cls.s3['id']):
+            cls.client.delete_server(server_id)
+        for server_id in (cls.s1['id'], cls.s2['id'], cls.s3['id']):
+            cls.client.wait_for_server_termination(server_id)
         super(ListServerFiltersTestJSON, cls).tearDownClass()
 
     @utils.skip_unless_attr('multiple_images', 'Only one image found')

@@ -51,6 +51,12 @@ class ServersWhiteboxTest(whitebox.ComputeWhiteboxTest):
                 cls.client.delete_server(server['id'])
             except exceptions.NotFound:
                 continue
+        for server in cls.servers:
+            try:
+                cls.client.wait_for_server_termination(server['id'])
+            except exceptions.NotFound:
+                continue
+
 
     def test_create_server_vcpu_quota_full(self):
         # Disallow server creation when tenant's vcpu quota is full
