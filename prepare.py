@@ -1,15 +1,13 @@
 import os
 from time import sleep
+import urllib
 import keystoneclient.v2_0
+from keystoneclient import exceptions
 from quantumclient.v2_0 import client as q_client
 import glanceclient
-import subprocess
 import argparse
 
 CIRROS_IMAGE = 'https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img'
-here = lambda *x: os.path.join(os.path.abspath(os.path.dirname(__file__)), *x)
-REPOSITORY_ROOT = here('..')
-root = lambda *x: os.path.join(os.path.abspath(REPOSITORY_ROOT), *x)
 
 template_folsom = """
 [identity]
@@ -462,7 +460,7 @@ quantum_available = %(QUANTUM)s
 
 class PrepareTempest():
     def __init__(self, username, password, tenant, public_ip, internal_ip,
-                 release, simple):
+                 release, simple, path_to_private_key):
         self.username = username
         self.password = password
         self.tenant = tenant
@@ -470,6 +468,7 @@ class PrepareTempest():
         self.internal_ip = internal_ip
         self.release = release
         self.simple = simple
+        self.path_to_private_key = path_to_private_key
 
     def prepare(self):
         if self.release == "grizzly":
@@ -512,10 +511,6 @@ class PrepareTempest():
                 template=template_folsom,
                 image_ref=image_ref,
                 image_ref_alt=image_ref_alt,
-                path_to_private_key=root('fuel_test',
-                                         'config',
-                                         'ssh_keys',
-                                         'openstack'),
                 compute_db_uri='mysql://nova:nova@%s/nova' % self.internal_ip
             )
         )
@@ -529,24 +524,34 @@ class PrepareTempest():
                 image_ref_alt=image_ref_alt,
                 public_network_id=net_id,
                 public_router_id=router_id,
-                path_to_private_key=root(
-                    'fuel_test',
-                    'config',
-                    'ssh_keys',
-                    'openstack'
-                ),
                 compute_db_uri='mysql://nova:nova@%s/nova' % self.internal_ip
             )
         )
 
     def make_tempest_objects(self):
         keystone = self.get_keystone()
-        tenant1 = retry(10, keystone.tenants.create, tenant_name='tenant1')
-        tenant2 = retry(10, keystone.tenants.create, tenant_name='tenant2')
-        retry(10, keystone.users.create, name='tempest1', password='secret',
-              email='tempest1@example.com', tenant_id=tenant1.id)
-        retry(10, keystone.users.create, name='tempest2', password='secret',
-              email='tempest2@example.com', tenant_id=tenant2.id)
+        try:
+            tenant1 = retry(10, keystone.tenants.create, tenant_name='tenant1')
+        except keystoneclient.exceptions.Conflict:
+            tenant1 = filter(
+                lambda tenant: tenant.name == 'tenant1',
+                keystone.tenants.list())[0]
+        try:
+            tenant2 = retry(10, keystone.tenants.create, tenant_name='tenant2')
+        except keystoneclient.exceptions.Conflict:
+            tenant2 = filter(
+                lambda tenant: tenant.name == 'tenant2',
+                keystone.tenants.list())[0]
+        try:
+            retry(10, keystone.users.create, name='tempest1', password='secret',
+                  email='tempest1@example.com', tenant_id=tenant1.id)
+        except keystoneclient.exceptions.Conflict:
+            pass
+        try:
+            retry(10, keystone.users.create, name='tempest2', password='secret',
+                  email='tempest2@example.com', tenant_id=tenant2.id)
+        except keystoneclient.exceptions.Conflict:
+            pass
         image_ref, image_ref_alt = self._tempest_add_images()
         #net_id, router_id = self._tempest_get_netid_routerid()
         return image_ref, image_ref_alt, "net_id", "router_id"
@@ -560,7 +565,7 @@ class PrepareTempest():
 
     def _tempest_add_images(self):
         if not os.path.isfile('cirros.img'):
-            subprocess.check_call(['wget', CIRROS_IMAGE, '-O', 'cirros.img'])
+            urllib.urlretrieve(CIRROS_IMAGE, 'cirros.img')
         glance = self.get_glance()
         return self._upload(glance, 'cirros.img', 'cirros.img'), self._upload(
             glance, 'cirros.img', 'cirros.img')
@@ -573,12 +578,11 @@ class PrepareTempest():
         return network, router
 
     def _tempest_write_config(self, config):
-        with open(root('..', 'tempest.conf'), 'w') as f:
+        with open('tempest.conf', 'w') as f:
             f.write(config)
 
     def _tempest_config_folsom(
             self, template, image_ref, image_ref_alt,
-            path_to_private_key,
             compute_db_uri='mysql://user:pass@localhost/nova'):
         sample = load(template)
         config = sample % {
@@ -613,7 +617,7 @@ class PrepareTempest():
             'COMPUTE_SOURCE_DIR': '/opt/stack/nova',
             'COMPUTE_CONFIG_PATH': '/etc/nova/nova.conf',
             'COMPUTE_BIN_DIR': '/usr/local/bin',
-            'COMPUTE_PATH_TO_PRIVATE_KEY': path_to_private_key,
+            'COMPUTE_PATH_TO_PRIVATE_KEY': self.path_to_private_key,
             'COMPUTE_DB_URI': compute_db_uri,
             'IMAGE_CATALOG_TYPE': 'image',
             'IMAGE_API_VERSION': '1',
@@ -640,12 +644,10 @@ class PrepareTempest():
     def _tempest_config_grizzly(
             self, template, image_ref, image_ref_alt,
             public_network_id, public_router_id,
-            path_to_private_key,
             compute_db_uri='mysql://nova:secret@localhost/nova'):
         config = template % {
             'IDENTITY_CATALOG_TYPE': 'identity',
             'IDENTITY_DISABLE_SSL_CHECK': 'true',
-            'IDENTITY_USE_SSL': 'false',
             'IDENTITY_URI': 'http://%s:5000/v2.0/' % self.public_ip,
             'IDENTITY_STRATEGY': 'keystone',
             'IDENTITY_REGION': 'RegionOne',
@@ -680,7 +682,7 @@ class PrepareTempest():
             'COMPUTE_CONFIG_PATH': '/etc/nova/nova.conf',
             'COMPUTE_BIN_DIR': '/usr/local/bin',
             'COMPUTE_DB_URI': compute_db_uri,
-            'COMPUTE_PATH_TO_PRIVATE_KEY': path_to_private_key,
+            'COMPUTE_PATH_TO_PRIVATE_KEY': self.path_to_private_key,
             'COMPUTE_ADMIN_USERNAME': self.username,
             'COMPUTE_ADMIN_PASSWORD': self.password,
             'COMPUTE_ADMIN_TENANT_NAME': self.tenant,
@@ -741,9 +743,11 @@ def main():
     parser.add_argument("--username", help="administrator name",
                         default="admin")
     parser.add_argument("--password", help="administrator password",
-                        default="nova")
+                        default="admin")
     parser.add_argument("--tenant", help="default tenant name",
                         default="admin")
+    parser.add_argument("--key", help="path to private key",
+                        default='')
     parser.add_argument("public_ip",
                         help="public or virtual ip of controller")
     parser.add_argument("internal_ip",
@@ -759,7 +763,8 @@ def main():
         public_ip=args['public_ip'],
         internal_ip=args['internal_ip'],
         simple=args['simple'],
-        release=args['release']
+        release=args['release'],
+        path_to_private_key=args['key']
     )
 
     prepare.prepare()
