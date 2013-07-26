@@ -32,31 +32,27 @@ class SecurityGroupRulesTestJSON(base.BaseComputeTest):
     @attr(type='positive')
     def test_security_group_rules_create(self):
         # Positive test: Creation of Security Group rule
-        # should be successfull
+        security_group = None
+        rule = None
         try:
             #Creating a Security Group to add rules to it
-            s_name = rand_name('securitygroup-')
+            s_name = rand_name('security_group-')
             s_description = rand_name('description-')
-            resp, securitygroup = \
-                self.client.create_security_group(s_name, s_description)
-            securitygroup_id = securitygroup['id']
+            resp, security_group = self.client.create_security_group(
+                s_name,
+                s_description)
             #Adding rules to the created Security Group
-            parent_group_id = securitygroup['id']
-            ip_protocol = 'tcp'
-            from_port = 22
-            to_port = 22
-            resp, rule = \
-                self.client.create_security_group_rule(parent_group_id,
-                                                       ip_protocol,
-                                                       from_port,
-                                                       to_port)
+            resp, rule = self.client.create_security_group_rule(
+                parent_group_id=security_group['id'],
+                ip_proto='tcp',
+                from_port=22,
+                tcp_port=22)
             self.assertEqual(200, resp.status)
         finally:
-            #Deleting the Security Group rule, created in this method
-            group_rule_id = rule['id']
-            self.client.delete_security_group_rule(group_rule_id)
-            #Deleting the Security Group created in this method
-            resp, _ = self.client.delete_security_group(securitygroup_id)
+            if rule is not None:
+                self.client.delete_security_group_rule(rule['id'])
+            if security_group is not None:
+                self.client.delete_security_group(security_group['id'])
 
     @attr(type='positive')
     def test_security_group_rules_create_with_optional_arguments(self):
@@ -100,7 +96,7 @@ class SecurityGroupRulesTestJSON(base.BaseComputeTest):
             #Deleting the Security Group rule, created in this method
             if rule_id:
                 self.client.delete_security_group_rule(rule_id)
-            #Deleting the Security Groups created in this method
+                #Deleting the Security Groups created in this method
             if secgroup1:
                 self.client.delete_security_group(secgroup1)
             if secgroup2:
