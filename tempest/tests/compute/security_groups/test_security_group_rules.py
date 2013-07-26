@@ -168,19 +168,22 @@ class SecurityGroupRulesTestJSON(base.BaseComputeTest):
         # Negative test: Creation of Security Group rule should FAIL
         # with invalid from_port
         #Creating a Security Group to add rule to it
-        s_name = rand_name('securitygroup-')
-        s_description = rand_name('description-')
-        resp, securitygroup = self.client.create_security_group(s_name,
-                                                                s_description)
-        #Adding rules to the created Security Group
-        parent_group_id = securitygroup['id']
-        ip_protocol = 'tcp'
-        from_port = rand_name('999')
-        to_port = 22
-        self.addCleanup(self.client.delete_security_group, securitygroup['id'])
-        self.assertRaises(exceptions.BadRequest,
-                          self.client.create_security_group_rule,
-                          parent_group_id, ip_protocol, from_port, to_port)
+        security_group = None
+        try:
+            s_name = rand_name('security_group-')
+            s_description = rand_name('description-')
+            resp, security_group = self.client.create_security_group(s_name,
+                                                                     s_description)
+            #Adding rules to the created Security Group
+            self.assertRaises(
+                exceptions.BadRequest,
+                self.client.create_security_group_rule,
+                parent_group_id=security_group['id'],
+                ip_protocol='tcp', from_port=rand_name('999'),
+                to_port=22)
+        finally:
+            if security_group is not None:
+                self.client.delete_security_group(security_group['id'])
 
     @attr(type='negative')
     def test_security_group_rules_create_with_invalid_to_port(self):
