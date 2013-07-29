@@ -415,7 +415,7 @@ class PrepareTempest():
             'COMPUTE_CATALOG_TYPE': 'compute',
             'COMPUTE_CREATE_IMAGE_ENABLED': 'true',
             'COMPUTE_RESIZE_AVAILABLE': 'true',
-            'COMPUTE_CHANGE_PASSWORD_AVAILABLE': 'true',
+            'COMPUTE_CHANGE_PASSWORD_AVAILABLE': 'false',
             'LIVE_MIGRATION': 'true',
             'USE_BLOCKMIG_FOR_LIVEMIG': 'true',
             'COMPUTE_WHITEBOX_ENABLED': 'true',
