@@ -173,11 +173,9 @@ class ListServerFiltersTestJSON(base.BaseComputeTest):
         params = {'status': 'active'}
         resp, body = self.client.list_servers_with_detail(params)
         servers = body['servers']
-
         self.assertIn(self.s1['id'], map(lambda x: x['id'], servers))
         self.assertIn(self.s2['id'], map(lambda x: x['id'], servers))
         self.assertIn(self.s3['id'], map(lambda x: x['id'], servers))
-        self.assertEqual(['ACTIVE'] * 3, [x['status'] for x in servers])
 
     @attr(type='positive')
     def test_list_servers_detailed_limit_results(self):
