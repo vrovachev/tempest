@@ -16,8 +16,7 @@
 #    under the License.
 
 import base64
-
-import netaddr
+import ipaddr
 import testtools
 
 
@@ -71,7 +70,7 @@ class ServersTestJSON(base.BaseComputeTest):
         # NOTE(maurosr): See http://tools.ietf.org/html/rfc5952 (section 4)
         # Here we compare directly with the canonicalized format.
         self.assertEqual(self.server['accessIPv6'],
-                         str(netaddr.IPAddress(self.accessIPv6)))
+                         str(ipaddr.IPAddress(self.accessIPv6)))
         self.assertEqual(self.name, self.server['name'])
         self.assertEqual(self.image_ref, self.server['image']['id'])
         self.assertEqual(str(self.flavor_ref), self.server['flavor']['id'])
