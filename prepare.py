@@ -406,7 +406,7 @@ class PrepareTempest():
             'IMAGE_ID': image_ref,
             'IMAGE_ID_ALT': image_ref_alt,
             'FLAVOR_REF': '1',
-            'FLAVOR_REF_ALT': '1',
+            'FLAVOR_REF_ALT': '2',
             'COMPUTE_BUILD_INTERVAL': '10',
             'COMPUTE_BUILD_TIMEOUT': '600',
             'RUN_SSH': 'false',
