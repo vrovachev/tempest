@@ -43,10 +43,10 @@ class SecurityGroupRulesTestJSON(base.BaseComputeTest):
                 s_description)
             #Adding rules to the created Security Group
             resp, rule = self.client.create_security_group_rule(
-                parent_group_id=security_group['id'],
-                ip_proto='tcp',
-                from_port=22,
-                tcp_port=22)
+                security_group['id'],
+                'tcp',
+                22,
+                22)
             self.assertEqual(200, resp.status)
         finally:
             if rule is not None:
@@ -178,9 +178,10 @@ class SecurityGroupRulesTestJSON(base.BaseComputeTest):
             self.assertRaises(
                 exceptions.BadRequest,
                 self.client.create_security_group_rule,
-                parent_group_id=security_group['id'],
-                ip_protocol='tcp', from_port=rand_name('999'),
-                to_port=22)
+                security_group['id'],
+                'tcp',
+                rand_name('999'),
+                22)
         finally:
             if security_group is not None:
                 self.client.delete_security_group(security_group['id'])
