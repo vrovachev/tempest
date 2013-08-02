@@ -16,7 +16,10 @@
 #    under the License.
 
 import base64
-import ipaddr
+try:
+    import ipaddr
+except ImportError:
+    import netaddr as ipaddr
 import testtools
 
 
