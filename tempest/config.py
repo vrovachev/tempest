@@ -414,6 +414,28 @@ def register_stress_opts(conf):
     for opt in StressGroup:
         conf.register_opt(opt, group='stress')
 
+murano_group = cfg.OptGroup(name='murano', title='Tests for Murano')
+
+MuranoGroup = [
+    cfg.BoolOpt('murano_avaible',
+               default = False,
+               help = 'True if Murano is installed'),
+    cfg.StrOpt('murano_url',
+               default = 'http://localhost:8082/',
+               help = 'Murano endpoint'),
+    cfg.StrOpt('agListnerIP',
+               default = '10.100.0.155',
+               help = 'agListnerIP for sql cluster json'),
+    cfg.StrOpt('clusterIP',
+               default = '10.100.0.150',
+               help = 'clusterIP for sql cluster json')
+]
+
+def register_murano_opts(conf):
+   conf.register_group(murano_group)
+   for opt in MuranoGroup:
+        conf.register_opt(opt, group='murano')
+
 
 @singleton
 class TempestConfig:
@@ -459,6 +481,7 @@ class TempestConfig:
         register_boto_opts(cfg.CONF)
         register_compute_admin_opts(cfg.CONF)
         register_stress_opts(cfg.CONF)
+        register_murano_opts(cfg.CONF)
         self.compute = cfg.CONF.compute
         self.whitebox = cfg.CONF.whitebox
         self.identity = cfg.CONF.identity
@@ -469,6 +492,7 @@ class TempestConfig:
         self.boto = cfg.CONF.boto
         self.compute_admin = cfg.CONF['compute-admin']
         self.stress = cfg.CONF.stress
+        self.murano = cfg.CONF.murano
         if not self.compute_admin.username:
             self.compute_admin.username = self.identity.admin_username
             self.compute_admin.password = self.identity.admin_password
