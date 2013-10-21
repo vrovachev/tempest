@@ -277,3 +277,11 @@ build_timeout = 120
 
 # Status change wait interval
 build_interval = 1
+
+
+[murano]
+catalog_type = murano
+murano_avaible = True
+murano_url = http://127.0.0.1:8082
+agListnerIP = 10.100.0.155
+clusterIP = 10.100.0.150
