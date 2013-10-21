@@ -13,4 +13,9 @@ python-quantumclient>=2.1
 testresources
 keyring
 testrepository
-oslo.config>=1.1.0
+-f http://tarballs.openstack.org/oslo.config/oslo.config-1.2.0a3.tar.gz#egg=oslo.config-1.2.0a3
+oslo.config>=1.2.0a3
+# Needed for savanna testing
+unittest2
+-f http://tarballs.openstack.org/python-savannaclient/python-savannaclient-master.tar.gz#egg=pythonsavannaclient-1.0
+pythonsavannaclient>=1.0

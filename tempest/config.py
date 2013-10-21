@@ -414,6 +414,179 @@ def register_stress_opts(conf):
     for opt in StressGroup:
         conf.register_opt(opt, group='stress')
 
+savanna_common_group = cfg.OptGroup(name='savanna_common')
+SavannaCommonGroup = [
+
+    cfg.StrOpt('OS_USERNAME',
+               default='admin', help='Username for Open Stack'),
+    cfg.StrOpt('OS_PASSWORD',
+               default='admin', help='Password for Open Stack'),
+    cfg.StrOpt('OS_TENANT_NAME',
+               default='admin', help='Tenant name for Open Stack'),
+    cfg.StrOpt('OS_AUTH_URL',
+               default='http://127.0.0.1:35357/v2.0/',
+               help='URL for Open Stack'),
+
+    cfg.StrOpt('SAVANNA_HOST',
+               default='127.0.0.1',
+               help='Host for Savanna'),
+    cfg.IntOpt('SAVANNA_PORT',
+               default=8386,
+               help='Port for Savanna'),
+    cfg.StrOpt('SAVANNA_API_VERSION',
+               default='v1.1',
+               help='Api version for Savanna'),
+
+    cfg.IntOpt('FLAVOR_ID',
+               default=2,
+               help='Open Stack flavor ID for image'),
+
+    cfg.IntOpt('CLUSTER_CREATION_TIMEOUT',
+               default=30,
+               help='Cluster creation timeout (in minutes); '
+                    'minimal value is 1'),
+
+    cfg.IntOpt('TELNET_TIMEOUT',
+               default=3,
+               help='Timeout for node process deployment on cluster '
+                    'nodes (in minutes); minimal value is 1'),
+
+    cfg.IntOpt('HDFS_INITIALIZATION_TIMEOUT',
+               default=3,
+               help='Timeout for HDFS initialization (in minutes); '
+                    'minimal value is 1'),
+
+    cfg.StrOpt('CLUSTER_NAME',
+               default='test-cluster', help='Name for cluster'),
+
+    cfg.StrOpt('USER_KEYPAIR_ID',
+               default='jenkins',
+               help='Open Stack key pair id your SSH public key which '
+                    'Savanna transfers to cluster nodes for access of users '
+                    'to virtual machines via SSH, using this key'),
+
+    cfg.StrOpt('PATH_TO_SSH_KEY',
+               default='/home/ubuntu/.ssh/id_rsa',
+               help='Path to folder where is located id_rsa key which is used '
+                    'for remote command execution; if you specified wrong '
+                    'path to key then you will have the error "Private key '
+                    'file is encrypted"; please, make sure you specified '
+                    'right path to key')
+]
+
+savanna_vanilla_group = cfg.OptGroup(name='savanna_vanilla')
+SavannaVanillaGroup = [
+
+    cfg.StrOpt('PLUGIN_NAME',
+               default='vanilla',
+               help='Name of plugin'),
+
+    cfg.StrOpt('IMAGE_ID',
+               default='75615550-013c-426f-a6e5-dd3318950c20',
+               help='ID for image which is used for cluster creation'),
+
+    cfg.StrOpt('NODE_USERNAME',
+               default='ubuntu',
+               help='Username which is used for connecting to cluster nodes '
+                    'via SSH'),
+
+    cfg.StrOpt('HADOOP_VERSION',
+               default='1.2.1', help='Version of Hadoop'),
+    cfg.StrOpt('HADOOP_USER',
+               default='hadoop',
+               help='Username which is used for access to Hadoop services'),
+    cfg.StrOpt('HADOOP_DIRECTORY',
+               default='/usr/share/hadoop',
+               help='Directory where are located Hadoop jar files'),
+    cfg.StrOpt('HADOOP_LOG_DIRECTORY',
+               default='/mnt/log/hadoop/hadoop/userlogs',
+               help='Directory where is located log info about '
+                    'completed jobs'),
+
+    cfg.DictOpt('HADOOP_PROCESSES_WITH_PORTS',
+                default={'jobtracker': 50030,
+                         'namenode': 50070,
+                         'tasktracker': 50060,
+                         'datanode': 50075,
+                         'secondarynamenode': 50090},
+                help='Hadoop process map with ports for Vanilla plugin'),
+
+    cfg.DictOpt('PROCESS_NAMES',
+                default={'nn': 'namenode',
+                         'tt': 'tasktracker',
+                         'dn': 'datanode'},
+                help='Names for namenode, tasktracker and datanode processes'),
+
+    cfg.BoolOpt('SKIP_ALL_TESTS_FOR_PLUGIN',
+                default=True,
+                help='If this variable is True then tests for Vanilla plugin '
+                     'will be skipped'),
+    cfg.BoolOpt('SKIP_CLUSTER_CONFIG_TEST', default=False),
+    cfg.BoolOpt('SKIP_MAP_REDUCE_TEST', default=False),
+    cfg.BoolOpt('SKIP_SWIFT_TEST', default=False),
+    cfg.BoolOpt('SKIP_SCALING_TEST', default=False)
+
+]
+
+savanna_hdp_group = cfg.OptGroup(name='savanna_hdp')
+SavannaHDPGroup = [
+
+    cfg.StrOpt('PLUGIN_NAME',
+               default='hdp', help='Name of plugin'),
+
+    cfg.StrOpt('IMAGE_ID',
+               default='5ea141c3-893e-4b5c-b138-910adc09b281',
+               help='ID for image which is used for cluster creation'),
+
+    cfg.StrOpt('NODE_USERNAME',
+               default='cloud-user',
+               help='Username which is used for connecting to cluster nodes '
+                    'via SSH'),
+
+    cfg.StrOpt('HADOOP_VERSION',
+               default='1.3.0', help='Version of Hadoop'),
+    cfg.StrOpt('HADOOP_USER',
+               default='hdfs',
+               help='Username which is used for access to Hadoop services'),
+    cfg.StrOpt('HADOOP_DIRECTORY',
+               default='usr/lib/hadoop',
+               help='Directory where are located Hadoop jar files'),
+    cfg.StrOpt('HADOOP_LOG_DIRECTORY',
+               default='/hadoop/mapred/userlogs',
+               help='Directory where is located log info about '
+                    'completed jobs'),
+
+    cfg.DictOpt('HADOOP_PROCESSES_WITH_PORTS',
+                default={
+                'JOBTRACKER': 50030,
+                'NAMENODE': 50070,
+                'TASKTRACKER': 50060,
+                'DATANODE': 50075,
+                'SECONDARY_NAMENODE': 50090
+                },
+                help='Hadoop process map with ports for HDP plugin'
+                ),
+
+    cfg.DictOpt('PROCESS_NAMES',
+                default={'nn': 'NAMENODE',
+                         'tt': 'TASKTRACKER',
+                         'dn': 'DATANODE'},
+                help='Names for namenode, tasktracker and datanode processes'),
+
+    cfg.BoolOpt('SKIP_ALL_TESTS_FOR_PLUGIN',
+                default=True,
+                help='If this variable is True then tests for HDP plugin '
+                     'will be skipped'),
+    cfg.BoolOpt('SKIP_MAP_REDUCE_TEST', default=False),
+    cfg.BoolOpt('SKIP_SCALING_TEST', default=False)
+]
+
+
+def register_config(config, config_group, config_opts):
+
+    config.register_group(config_group)
+    config.register_opts(config_opts, config_group)
+
 
 @singleton
 class TempestConfig:
@@ -459,6 +632,9 @@ class TempestConfig:
         register_boto_opts(cfg.CONF)
         register_compute_admin_opts(cfg.CONF)
         register_stress_opts(cfg.CONF)
+        register_config(cfg.CONF, savanna_common_group, SavannaCommonGroup)
+        register_config(cfg.CONF, savanna_vanilla_group, SavannaVanillaGroup)
+        register_config(cfg.CONF, savanna_hdp_group, SavannaHDPGroup)
         self.compute = cfg.CONF.compute
         self.whitebox = cfg.CONF.whitebox
         self.identity = cfg.CONF.identity
@@ -469,6 +645,9 @@ class TempestConfig:
         self.boto = cfg.CONF.boto
         self.compute_admin = cfg.CONF['compute-admin']
         self.stress = cfg.CONF.stress
+        self.savanna_common = cfg.CONF.savanna_common
+        self.savanna_vanilla = cfg.CONF.savanna_vanilla
+        self.savanna_hdp = cfg.CONF.savanna_hdp
         if not self.compute_admin.username:
             self.compute_admin.username = self.identity.admin_username
             self.compute_admin.password = self.identity.admin_password
