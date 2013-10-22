@@ -353,6 +353,20 @@ class MuranoTest(tempest.test.BaseTestCase):
                                       self.client.headers)
         return resp, json.loads(body) 
 
+    def create_linux_agent(self, environment_id, session_id, domain_name = ""):
+        post_body = {'availabilityZone': 'nova', 'name': 'Linux_agent',
+                     'deployTelnet': True, 'unitNamingPattern': '',
+                     'osImage': {'type': 'linux',
+                     'name': 'F18-x86_64-cfntools-MURANO',
+                     'title': 'Linux with vNext agent'}, 'units': [{}],
+                     'flavor': 'm1.medium', 'type': 'linuxTelnetService'}
+        post_body = json.dumps(post_body)
+        self.client.headers.update({'X-Configuration-Session': session_id})
+        resp, body = self.client.post('environments/' + str(environment_id) +   
+                                      '/services', post_body,
+                                      self.client.headers)
+        return resp, json.loads(body)
+
     def delete_service(self, environment_id, session_id, service_id):
         """
             This method allow to delete service

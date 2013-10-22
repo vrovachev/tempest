@@ -22,6 +22,40 @@ import time
 
 class SanityMuranoTest(base.MuranoTest):
 
+    def test_create_and_deploying_linux_agent(self):
+    """ Create and deploy Linux Agent
+        Target component: Murano
+
+        Scenario:
+        1. Send request to create environment
+        2. Send request to create session
+        3. Send request to add linux agent
+        4. Send request to deploy linux agent
+        5. Send request to get info for check deloyment status
+        6. Send request to delete environment
+    """
+        resp, env = self.create_environment('test')
+        resp, sess = self.create_session(env['id'])
+        resp, serv = self.create_linux_agent(env['id'], sess['id'])
+        resp = self.deploy_session(env['id'], sess['id'])
+        resp, sessinfo = self.get_session_info(env['id'], sess['id'])           
+        env.update({'status': None})
+        k = 0
+        while env['status'] != "ready":
+            time.sleep(15)
+            k += 1
+            resp, env = self.get_environment_by_id(env['id'])
+            if not env.has_key('status'):
+                env.update({'status': None})
+            if k > 120:
+                break
+        resp, envo = self.get_deployments_list(env['id'])
+        assert envo['deployments'][0]['state'] == 'success'
+        resp, infa = self.get_deployment_info(env['id'],                        
+                                              envo['deployments'][0]['id'])
+        resp = self.delete_environment(env['id'])
+
+
     @attr(type='positive')
     def test_create_and_deploying_ad(self):
         """ Create and deploy AD
