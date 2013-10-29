@@ -22,17 +22,6 @@ import tempest.config as config
 
 class SanityMuranoTest(base.MuranoTest):
 
-    def test_linux_agent(self):
-        resp, env = self.get_list_environments()
-        print env['environments'][1]
-        print "^^^^^^^^^^^^^^^^^^^^"
-        resp, envo = self.get_deployments_list(env['environments'][1]['id'])
-        print envo
-        print "^^^^^^^^^^^^^^^^^^^^^^"
-        resp, infa = self.get_deployment_info(env['environments'][1]['id'],     
-                                              envo['deployments'][0]['id'])
-        print infa
-
     @attr(type='smoke')
     def test_get_environment(self):
         """ Get environment by id
